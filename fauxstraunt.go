@@ -20,22 +20,19 @@ type fauxchain struct {
 }
 
 func InitFauxChain() fauxchain {
-  fauxstraunts := []fauxstraunt {
-    { 
+  fauxstraunts := []location {
+    &fauxstraunt { 
       description: "How did this get here???",
       address: "litterally Narnia",
     },
-    { 
+    &fauxstraunt{ 
       description: "This one makes a little more sense",
       address: "the north pole",
     },
   }
-  restraunts := make([]location, 2);
-  for i, v := range fauxstraunts {
-    restraunts[i] = &v
-  }
-  return fauxchain{restraunts}
+  return fauxchain{restraunts: fauxstraunts}
 }
+
 func (r *fauxchain) GetName() string {return "FauxChain"}
 func (r *fauxchain) LoadCredentials() bool {return false}
 func (r *fauxchain) Login(username string, password string) bool {return true}
