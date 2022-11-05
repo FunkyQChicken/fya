@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -17,6 +19,7 @@ type Panera struct {
 	id int
 	description string
 	address string
+	destinationCode string
 	credentialsLoaded bool
 	cartCreated bool
 	cart []item
@@ -31,7 +34,55 @@ func (p *Panera) GetAddress() string {
 }
 
 func (p *Panera) CreateCart() {
-	// TODO: Actually create cart
+	if !p.credentialsLoaded {
+		log.Fatalln("Can’t create cart if credentials haven’t yet been loaded!")
+	}
+	
+	var err error
+	var req http.Request
+	var resp *http.Response
+	var body []byte
+	
+	var c cart = cart {
+		CreateGroupOrder: false,
+		Customer: customer {
+			
+		},
+		ServiceFeeSupported: true,
+		Cafes: "",
+		ApplyDynamicPricing: true,
+		CartSummary: cartsummary {
+			Destination: p.destinationCode,
+			Priority: "ASAP",
+			ClientType: "MOBILE_IOS",
+			DeliveryFee: "0.00",
+			LeadTime: "10",
+			LanguageCode: "en-US",
+		},
+	}
+	body, err = json.Marshal(c)
+	if err != nil {
+		// TODO: Handle error more gracefully
+		log.Fatalln(err)
+	}
+	req = http.Request {
+		Method: "POST",
+		URL: p.URL("/cart"),
+		Header: p.Header(),
+		Body: io.NopCloser(bytes.NewBuffer())),
+	}
+	resp, err = http.DefaultClient.Do(&req)
+	if err != nil {
+		// TODO: Handle error more gracefully
+		log.Fatalln(err)
+	}
+	body, err = ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		// TODO: Handle error more gracefully
+		log.Fatalln(err)
+	}
+	
 	p.cartCreated = true
 }
 
@@ -247,6 +298,38 @@ func (pc *PaneraChain) Locations() []location {
 }
 
 
+type customer struct {
+	Email string						`json:"email"`
+	Phone string						`json:"phone"`
+	Id string							`json:"id"`
+	LastName string						`json:"lastName"`
+	FirstName string					`json:"firstName"`
+	IdentityProvider string				`json:"identityProvider"`
+	Loyaltynum string					`json:"loyaltyNum"`
+}
+
+
+type cartsummary struct {
+	Destination string					`json:"destination"`
+	Priority string						`json:"priority"`
+	ClientType string					`json:"clientType"`
+	DeliveryFee string					`json:"deliveryFee"`
+	LeadTime float64					`json:"leadTime"`
+	LanguageCode string					`json:"languageCode"`
+	SpecialInstructions string			`json:"specialInstructions"`
+}
+
+
+type cart struct {
+	CreateGroupOrder bool				`json:"createGroupOrder"`
+	Customer customer					`json:"customer"`
+	ServiceFeeSupported bool			`json:"ServiceFeeSupported"`
+	Cafes string						`json:"cafes"`
+	ApplyDynamicPricing bool			`json:"applyDynamicPricing"`
+	CartSummary cartsummary				`json:"cartSummary"`
+}
+
+
 type menuversion struct {
 	CollectionName string				`json:"collectionName"`
 	AggregateVersion string				`json:"aggregateVersion"`
@@ -335,7 +418,7 @@ type optset struct {
 	SortWeight float64					`json:"sortWeight"`
 	SortWeightMobile float64			`json:"sortWeightMobile"`
 	SortWeightOmni float64				`json:"sortWeightOmni"`
-	Itemid int						`json:"itemId"`
+	Itemid int							`json:"itemId"`
 	LogicalName string					`json:"logicalName"`
 	I18nName string						`json:"i18nName"`
 	I18nNameval string					`json:"i18nNameVal"`

@@ -38,11 +38,11 @@ type cartItem struct {
   cost int
 }
 
-var fauxchainInstance = InitFauxChain();
-var notFauxchainInstance = InitNotFauxChain();
+var fc = InitFauxChain();
+var nfc = InitNotFauxChain();
 var pc = InitPaneraChain()
 var Chains = []chain {
-  &fauxchainInstance,
-  &notFauxchainInstance,
+  &fc,
+  &nfc,
   &pc,
 }
