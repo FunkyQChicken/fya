@@ -40,7 +40,9 @@ type cartItem struct {
 
 var fauxchainInstance = InitFauxChain();
 var notFauxchainInstance = InitNotFauxChain();
+var pc = InitPaneraChain()
 var Chains = []chain {
   &fauxchainInstance,
   &notFauxchainInstance,
+  &pc,
 }
