@@ -1,6 +1,7 @@
 package main
 
 type chain interface {
+  GetName() string;
   Login(username string, password string) bool;
   LoadCredentials() bool;
   Locations() []location;
@@ -38,6 +39,8 @@ type cartItem struct {
 }
 
 var fauxchainInstance = InitFauxChain();
+var notFauxchainInstance = InitNotFauxChain();
 var Chains = []chain {
   &fauxchainInstance,
+  &notFauxchainInstance,
 }

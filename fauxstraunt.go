@@ -1,5 +1,19 @@
 package main
 
+type notFauxchain struct {
+}
+func InitNotFauxChain() notFauxchain {
+  return notFauxchain{}
+}
+func (r *notFauxchain) GetName() string {return "NotFaux Chain"}
+func (r *notFauxchain) LoadCredentials() bool {return false}
+func (r *notFauxchain) Login(username string, password string) bool {return true}
+func (r *notFauxchain) Locations() []location {
+  fauxchain :=  InitFauxChain()
+  return (&fauxchain).Locations()
+}
+
+
 
 type fauxchain struct {
   restraunts []location
@@ -22,6 +36,7 @@ func InitFauxChain() fauxchain {
   }
   return fauxchain{restraunts}
 }
+func (r *fauxchain) GetName() string {return "FauxChain"}
 func (r *fauxchain) LoadCredentials() bool {return false}
 func (r *fauxchain) Login(username string, password string) bool {return true}
 func (r *fauxchain) Locations() []location {return r.restraunts}
