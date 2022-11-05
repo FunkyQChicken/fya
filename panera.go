@@ -92,11 +92,35 @@ func (p *Panera) Menu() []item {
 		// TODO: Handle error more gracefully
 		log.Fatalln(err)
 	}
-	log.Println(m)
-	
-	return []item {
-		// TODO: Get menu items
-	}
+
+  ret := make([]item, 0, 100)
+  for _, placard := range m.Placards {
+    optsets := placard.OptSets
+    if (optsets != nil) {
+      for _, optset := range optsets {
+        name := optset.I18nName
+        description := optset.LogicalName
+        calories := 0
+        cost := int(optset.Price * 100)
+        id := optset.Itemid 
+        for _, nutr := range optset.Nutr {
+          if nutr.LogicalName ==  "Calories" {
+            calories = int(nutr.Value)
+          }
+        }
+
+        ret = append(ret, item{
+          name,
+          description,
+          calories,
+          cost,
+          id,
+        })
+      }
+    }
+  }
+  
+	return ret
 }
 
 func (p *Panera) AddItem(i item) {
@@ -311,7 +335,7 @@ type optset struct {
 	SortWeight float64					`json:"sortWeight"`
 	SortWeightMobile float64			`json:"sortWeightMobile"`
 	SortWeightOmni float64				`json:"sortWeightOmni"`
-	Itemid float64						`json:"itmeId"`
+	Itemid int						`json:"itemId"`
 	LogicalName string					`json:"logicalName"`
 	I18nName string						`json:"i18nName"`
 	I18nNameval string					`json:"i18nNameVal"`
