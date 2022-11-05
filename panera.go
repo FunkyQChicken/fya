@@ -1,7 +1,16 @@
 package main
 
+import (
+	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"net/url"
+)
+
 
 type panera struct {
+	id int
 	description string
 	address string
 	cartCreated bool
@@ -22,6 +31,28 @@ func (p *panera) CreateCart() {
 }
 
 func (p panera) Menu() []item {
+	versionURL := url.URL {
+		Scheme: "https",
+		Host: "services-mob.panerabread.com",
+		Path: fmt.Sprintf("/%d/menu/version", p.id),
+	}
+	versionReq := http.Request {
+		Method: "GET",
+		URL: &versionURL,
+		Header: p.Header(),
+	}
+	versionResp, err := http.DefaultClient.Do(&versionReq)
+	if err != nil {
+		// TODO: Handle error more gracefully
+		log.Fatalln(err)
+	}
+	defer versionResp.Body.Close()
+	versionBody, err := ioutil.ReadAll(versionResp.Body)
+	if err != nil {
+		// TODO: Handle error more gracefully
+		log.Fatalln(err)
+	}
+	log.Println(string(versionBody))
 	return []item {
 		// TODO: Get menu items
 	}
@@ -64,6 +95,29 @@ func (p panera) Checkout() bool {
 	return p.cartCreated
 }
 
+func (p panera) Header() map[string][]string {
+	return map[string][]string {
+		"auth_token": {
+			"",
+		},
+		"appVersion": {
+			"4.69.9",
+		},
+		"api_token": {
+			"",
+		},
+		"Content-Type": {
+			"application/json",
+		},
+		"deviceId": {
+			"",
+		},
+		"User-Agent": {
+			"Panera/4.69.9 (iPhone; iOS 16.2; Scale/3.00)",
+		},
+	}
+}
+
 
 type panerachain struct {
 	restaurants []panera
@@ -73,6 +127,7 @@ func InitPaneraChain() panerachain {
 	return panerachain {
 		restaurants: []panera {
 			{
+				id: 203162,
 				description: "Rensselaer Union",
 				address: "110 8th Street\nTroy, NY 12180",
 			},
