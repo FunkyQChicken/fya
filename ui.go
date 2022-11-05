@@ -32,6 +32,17 @@ var (
       
 )
 
+func centsAsDollar(cents int) string {
+  dollars := cents / 100
+  cents    = cents % 100
+  var padding string
+  if cents < 10 {
+    padding = "0" 
+  } else {
+    padding = ""
+  }
+  return fmt.Sprintf("%d.%s%d", dollars, padding, cents)
+}
 
 type app struct {
   header string 
@@ -94,12 +105,18 @@ func (i chainItem) Title() string       { return i.c.GetName() }
 func (i chainItem) Description() string { return "" }
 func (i chainItem) FilterValue() string { return i.Title() }
 
+
+
 type menuItem struct { i item }
-func (i menuItem) Title() string       { return fmt.Sprintf("%s - %d$", i.i.name, i.i.cost) }
+func (i menuItem) Title() string { 
+  return fmt.Sprintf("%s - $%s", i.i.name, centsAsDollar(i.i.cost)) 
+}
 func (i menuItem) Description() string { 
   return fmt.Sprintf("%s\n%d calories", i.i.description, i.i.calories)
 }
 func (i menuItem) FilterValue() string { return i.i.name }
+
+
 
 type picker struct {
   list list.Model
@@ -140,6 +157,7 @@ func (p * picker) intoFoodPicker() {
   p.list.SetItems(menuItems)
   p.list.ResetFilter()
   p.list.ResetSelected()
+  list.NewDefaultDelegate()
 }
 
 
@@ -149,7 +167,10 @@ func (p picker) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
     case tea.KeyMsg:
       switch msg.String() {
-        case "enter":
+        case "enter", "space":
+          if p.list.FilterState() == list.Filtering {
+            break
+          }
           if p.chain == nil {
             ch, ok  := p.list.SelectedItem().(chainItem)
             if ok {
@@ -168,9 +189,14 @@ func (p picker) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
             if ok {
               p.location = loc.c
               p.intoFoodPicker()
+              return p, nil
             }
+          } else {
+            men, _ := p.list.SelectedItem().(menuItem)
+            p.location.AddItem(men.i)
+            // Todo go to discount prompt
+            return p, nil
           }
-          return p, tea.Quit
       }
     case tea.WindowSizeMsg:
       p.list.SetSize(msg.Width, msg.Height)
