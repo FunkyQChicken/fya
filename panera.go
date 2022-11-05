@@ -17,11 +17,11 @@ type panera struct {
 	cart []item
 }
 
-func (p panera) GetDescription() string {
+func (p *panera) GetDescription() string {
 	return p.description
 }
 
-func (p panera) GetAddress() string {
+func (p *panera) GetAddress() string {
 	return p.address
 }
 
@@ -30,7 +30,7 @@ func (p *panera) CreateCart() {
 	p.cartCreated = true
 }
 
-func (p panera) Menu() []item {
+func (p *panera) Menu() []item {
 	versionURL := url.URL {
 		Scheme: "https",
 		Host: "services-mob.panerabread.com",
@@ -65,20 +65,20 @@ func (p *panera) AddItem(i item) {
 	p.cart = append(p.cart, i)
 }
 
-func (p panera) Discounts() []discount {
+func (p *panera) Discounts() []discount {
 	return []discount {
 		// TODO: Get discounts
 	}
 }
 
-func (p panera) ApplyDiscounts(d discount) {
+func (p *panera) ApplyDiscounts(d discount) {
 	if !p.cartCreated {
 		panic("Item applied without an existing cart!")
 	}
 	// TODO: Apply discounts
 }
 
-func (p panera) Cart() []cartItem {
+func (p *panera) Cart() []cartItem {
 	ret := make([]cartItem, 0, len(p.cart)) // TODO: Add length for additional line items
 	for _, i := range p.cart {
 		ret = append(ret, cartItem{
@@ -90,12 +90,12 @@ func (p panera) Cart() []cartItem {
 	return ret
 }
 
-func (p panera) Checkout() bool {
+func (p *panera) Checkout() bool {
 	// TODO: Actually check out
 	return p.cartCreated
 }
 
-func (p panera) Header() map[string][]string {
+func (p *panera) Header() map[string][]string {
 	return map[string][]string {
 		"auth_token": {
 			"",
@@ -135,14 +135,14 @@ func InitPaneraChain() panerachain {
 	}
 }
 
-func (pc panerachain) LoadCredentials() bool {
+func (pc *panerachain) LoadCredentials() bool {
 	return false
 }
 
-func (pc panerachain) Login(username string, password string) bool {
+func (pc *panerachain) Login(username string, password string) bool {
 	return true
 }
 
-func (pc panerachain) Locations() []panera {
+func (pc *panerachain) Locations() []panera {
 	return pc.restaurants
 }

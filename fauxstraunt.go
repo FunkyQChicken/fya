@@ -2,26 +2,29 @@ package main
 
 
 type fauxchain struct {
-  restraunts []fauxstraunt
+  restraunts []location
 }
 
-func InitFauxchain() fauxchain {
-  return fauxchain {
-    restraunts: []fauxstraunt {
-      { 
-        description: "How did this get here???",
-        address: "litterally Narnia",
-      },
-      { 
-        description: "This one makes a little more sense",
-        address: "the north pole",
-      },
+func InitFauxChain() fauxchain {
+  fauxstraunts := []fauxstraunt {
+    { 
+      description: "How did this get here???",
+      address: "litterally Narnia",
+    },
+    { 
+      description: "This one makes a little more sense",
+      address: "the north pole",
     },
   }
+  restraunts := make([]location, 2);
+  for i, v := range fauxstraunts {
+    restraunts[i] = &v
+  }
+  return fauxchain{restraunts}
 }
-func (r fauxchain) LoadCredentials() bool {return false}
-func (r fauxchain) Login(username string, password string) bool {return true}
-func (r fauxchain) Locations() []fauxstraunt {return r.restraunts}
+func (r *fauxchain) LoadCredentials() bool {return false}
+func (r *fauxchain) Login(username string, password string) bool {return true}
+func (r *fauxchain) Locations() []location {return r.restraunts}
 
 
 type fauxstraunt struct {
@@ -34,10 +37,10 @@ type fauxstraunt struct {
 }
 
 
-func (r fauxstraunt) GetDescription() string {return r.description}
-func (r fauxstraunt) GetAddress() string {return r.address}
+func (r *fauxstraunt) GetDescription() string {return r.description}
+func (r *fauxstraunt) GetAddress() string {return r.address}
 func (r *fauxstraunt) CreateCart() {r.cartCreated = true}
-func (r fauxstraunt) Menu() []item {
+func (r *fauxstraunt) Menu() []item {
   return []item {
     {
       name: "Snowcone",
@@ -70,7 +73,7 @@ func (r *fauxstraunt) AddItem(it item) {
   r.cart = append(r.cart, it)
 }
 
-func (r fauxstraunt) Discounts() []discount {
+func (r *fauxstraunt) Discounts() []discount {
   return []discount {
     {
       name: "subscriber plus",
@@ -97,7 +100,7 @@ func (r *fauxstraunt) ApplyDiscounts(disc discount) {
   }
 }
 
-func (r fauxstraunt) Cart() []cartItem {
+func (r *fauxstraunt) Cart() []cartItem {
   ret := make([]cartItem, 0, len(r.cart) + 3)
   for _, it := range r.cart {
     ret = append(ret, cartItem{description: it.name, cost: it.cost,})
@@ -112,5 +115,5 @@ func (r fauxstraunt) Cart() []cartItem {
   return ret
 }
 
-func (r fauxstraunt) Checkout() bool {return r.cartCreated;}
+func (r *fauxstraunt) Checkout() bool {return r.cartCreated;}
 

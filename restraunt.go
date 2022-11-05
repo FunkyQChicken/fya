@@ -36,3 +36,8 @@ type cartItem struct {
   description string
   cost int
 }
+
+var fauxchainInstance = InitFauxChain();
+var Chains = []chain {
+  &fauxchainInstance,
+}
