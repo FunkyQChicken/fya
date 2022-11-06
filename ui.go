@@ -9,7 +9,21 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+
+var logo = "" +
+" ▄▄▄▄▄▄▄ ▄▄   ▄▄ ▄▄▄▄▄▄▄   \n" +
+"█       █  █ █  █       █  \n" +
+"█    ▄▄▄█  █▄█  █   ▄   █  \n" +
+"█   █▄▄▄█       █  █▄█  █  \n" +
+"█    ▄▄▄█▄     ▄█       █  \n" +
+"█   █     █   █ █   ▄   █  \n" +
+"█▄▄▄█     █▄▄▄█ █▄▄█ █▄▄█  \n"
+
 var (
+  fauxBlue = lipgloss.NewStyle().
+		Background(lipgloss.Color("62")).
+		Foreground(lipgloss.Color("230"))
+
   winStyle = lipgloss.NewStyle().
     Width(60).
     Margin(1, 1).
@@ -27,8 +41,7 @@ var (
     Foreground(lipgloss.Color("#9AFAFA")).
     Align(lipgloss.Center).
     Padding(0, 2).
-    MarginBottom(1).
-    BorderStyle(lipgloss.RoundedBorder())
+    MarginBottom(1)
       
 	subtle = lipgloss.NewStyle().
     Foreground(lipgloss.Color("241"))
@@ -59,14 +72,12 @@ func centsAsDollar(cents int) string {
 }
 
 type app struct {
-  header string 
   child tea.Model
 }
-var header = "FYA; Order with style"
+var header = "Order with style"
 func initApp() app { 
   return app { 
     child: initChainPicker(), 
-    //header: "FYA; The better menu",
   } 
 }
 
@@ -75,7 +86,7 @@ func (a app) View() string {
   return winStyle.Render(
     lipgloss.JoinVertical(
       0.0,
-      titleStyle.Render(header),
+      titleStyle.Render(lipgloss.JoinHorizontal(lipgloss.Center, logo, header)),
       bodyStyle.Render(a.child.View()),
     ))
 }
@@ -92,7 +103,7 @@ func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
       msgType.Width = winStyle.GetWidth()
       msgType.Width -= h
       
-      msgType.Height -= (1 + v) // to account for header
+      msgType.Height -= (7 + v) // to account for header
 
       msg = msgType
   }
@@ -284,7 +295,7 @@ func (s SignIn) Init() tea.Cmd {return textinput.Blink }
 
 func (s SignIn) View() string {
   return lipgloss.JoinVertical(0, 
-    "Credentials not found, please sign in\n",
+    "  " + fauxBlue.Render("Credentials not found, please sign in")+ "\n",
     inputStyle.Render(
       fmt.Sprintf("Username:\n%s", s.username.View()),
     ),
@@ -358,7 +369,7 @@ func (c cartPreview) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
         c.location.Checkout()
         header = "Order Placed!"
         return c, tea.Quit
-      case "n", "N":
+      case "n", "N", "q", "Q":
         header = "Order Canceled!"
         return c, tea.Quit
     }
@@ -375,7 +386,7 @@ func (c cartPreview) View() string {
     totalCost += it.cost
     costs += centsAsDollar(it.cost) +"\n"
   }
-  return fmt.Sprintf("%s\nTotal Cost: %s\n\n\nWould you like to place your order?\n%s", 
+  return fmt.Sprintf("%s\nTotal Cost: %s\n\n\n"+fauxBlue.Render("Would you like to place your order?")+"\n%s", 
     lipgloss.JoinHorizontal(lipgloss.Top, items, right.Render(costs)),
     bold.Render(centsAsDollar(totalCost)),
     subtle.Render("[Y]es/[N]o"))
