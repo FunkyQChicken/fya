@@ -246,14 +246,14 @@ func (p picker) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
                 p.intoDiscountPicker(discounts)
                 return p, nil
               } else {
-                return initCartPreview(p.location), nil
+                return initCartPreview(p.location, p), nil
               }
             }
           } else {
             disc, ok := p.list.SelectedItem().(discountItem)
             if ok {
               p.location.ApplyDiscounts(disc.d)
-              return initCartPreview(p.location), nil
+              return initCartPreview(p.location, p), nil
             }
           }
       }
@@ -354,13 +354,15 @@ func (s SignIn) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 type cartPreview struct { 
   location location 
   items []cartItem
+  prev picker
 }
 
-func initCartPreview(location location) cartPreview{
+func initCartPreview(location location, prev picker) cartPreview{
   return cartPreview {
     location: location,
     items: location.Cart(),
-    }   
+    prev: prev,
+  }   
 }
 
 func (c cartPreview) Init() tea.Cmd { return nil }
@@ -372,7 +374,11 @@ func (c cartPreview) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
         c.location.Checkout()
         header = "Order Placed!"
         return c, tea.Quit
-      case "n", "N", "q", "Q":
+      case "b", "B", "n", "N":
+        c.prev.foodChosen = false
+        c.prev.intoFoodPicker()
+        return c.prev, nil
+      case "c", "C", "q", "Q":
         header = "Order Canceled!"
         return c, tea.Quit
     }
@@ -393,5 +399,5 @@ func (c cartPreview) View() string {
     fauxBlue.Render("Would you like to place your order?"),
     lipgloss.JoinHorizontal(lipgloss.Top, items, right.Render(costs)),
     bold.Render(centsAsDollar(totalCost)),
-    subtle.Render("[Y]es/[N]o")))
+    subtle.Render("[Y]es/[N]o/[C]ancel")))
 }
