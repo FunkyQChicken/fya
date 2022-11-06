@@ -36,6 +36,9 @@ var (
   right = lipgloss.NewStyle().
     Align(lipgloss.Right).
     PaddingLeft(2)
+
+  bold = lipgloss.NewStyle().
+    Bold(true)
 )
 
 func centsAsDollar(cents int) string {
@@ -366,10 +369,14 @@ func (c cartPreview) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (c cartPreview) View() string {
   costs := ""
   items := ""
+  totalCost := 0
   for _, it := range c.items {
     items += it.description + "\n"
+    totalCost += it.cost
     costs += centsAsDollar(it.cost) +"\n"
   }
-  return fmt.Sprintf("%s\nWould you like to place your order?\n%s", 
-    lipgloss.JoinHorizontal(lipgloss.Top, items, right.Render(costs)), subtle.Render("[Y]es/[N]o"))
+  return fmt.Sprintf("%s\nTotal Cost: %s\n\n\nWould you like to place your order?\n%s", 
+    lipgloss.JoinHorizontal(lipgloss.Top, items, right.Render(costs)),
+    bold.Render(centsAsDollar(totalCost)),
+    subtle.Render("[Y]es/[N]o"))
 }
