@@ -277,10 +277,10 @@ func (p *Panera) ApplyDiscounts(d discount) {
 		panic("Item applied without an existing cart!")
 	}
   discBody := discountsReq {
-    discounts: []discountReq {
+    Discounts: []discountReq {
         {
-          disctype: "WALLET_CODE",
-          promoCode: fmt.Sprintf("%d", d.id),
+          Disctype: "WALLET_CODE",
+          PromoCode: fmt.Sprintf("%d", d.id),
         },
       },
   } 
@@ -727,10 +727,10 @@ type menu struct {
 }
 
 type discountsReq struct {
-  discounts []discountReq
+  Discounts []discountReq
 }
 
 type discountReq struct {
-  disctype string  `json:"type"`
-  promoCode string 
+  Disctype string  `json:"type"`
+  PromoCode string 
 }
