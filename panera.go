@@ -264,7 +264,11 @@ func (p *Panera) AddItem(i item) {
 
 func (p *Panera) Discounts() []discount {
 	return []discount {
-		// TODO: Get discounts
+		{
+      name: "Panera Sip-Club",
+      description: "One free drink with refills every 2 hours!",
+      id:1238,
+    },
 	}
 }
 
@@ -272,21 +276,51 @@ func (p *Panera) ApplyDiscounts(d discount) {
 	if !p.cartCreated {
 		panic("Item applied without an existing cart!")
 	}
-	// TODO: Apply discounts
+  discBody := discountsReq {
+    discounts: []discountReq {
+        {
+          disctype: "WALLET_CODE",
+          promoCode: fmt.Sprintf("%d", d.id),
+        },
+      },
+  } 
+  body, _ := json.Marshal(discBody)
+	req := http.Request {
+		Method: "POST",
+		URL: p.URL(fmt.Sprintf("/cart/%s/discount", p.cartid)),
+		Header: p.Header(),
+		Body: io.NopCloser(bytes.NewBuffer(body)),
+	}
+  http.DefaultClient.Do(&req)
 }
 
 func (p *Panera) Cart() []cartItem {
 	var cis []cartItem
-	cis = make([]cartItem, 0, len(p.cart)) // TODO: Add length for additional line items
-	var i item
-	for _, i = range p.cart {
-		cis = append(cis, cartItem {
-			description: i.name,
-			cost: i.cost,
-		})
-	}
-	// TODO: Finish filling cart
-	return cis
+	cis = make([]cartItem, 0, len(p.cart) + 2) 
+
+  body, _ := json.Marshal(struct{}{}) // The request contains no data
+
+  req := http.Request {
+    Method: "POST",
+		URL: p.URL(fmt.Sprintf("/cart/%s/checkout?summary=true", p.cartid)),
+    Header: p.Header(),
+		Body: io.NopCloser(bytes.NewBuffer(body)),
+  }
+
+  var cart = &cart{}
+  resp, _ := http.DefaultClient.Do(&req)
+	body, _ = ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+  json.Unmarshal(body, &cart)
+  cis = append(cis, cartItem{"Tax", 0/*cart.CartSummary.Tax*/})
+  cis = append(cis, cartItem{"Discount", 0/*cart.CartSummary.Discount*/})
+  for _, it := range cart.Items {
+    cost := it.Amount 
+    name := it.RenderSource.LogicalName 
+    cis = append(cis, cartItem{name, cost})
+  }
+
+  return cis
 }
 
 func (p *Panera) Checkout() bool {
@@ -684,4 +718,13 @@ type menu struct {
 	MenuTransition map[string]float64	`json:"menuTransition"`
 	QuantityRuleSet []quantityrule		`json:"quantityRuleSet"`
 	AllowedAllergens []allergen			`json:"allowedAllergens"`
+}
+
+type discountsReq struct {
+  discounts []discountReq
+}
+
+type discountReq struct {
+  disctype string  `json:"type"`
+  promoCode string 
 }
