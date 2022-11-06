@@ -197,7 +197,11 @@ func (p *Panera) Cart() []cartItem {
 
 func (p *Panera) Checkout() bool {
 	// TODO: Actually check out
-	return p.cartCreated
+  resp := postRequestNoMarshal(
+    p.URL(fmt.Sprintf("/payment/v2/slot-submit/%s", p.cartid)),
+    p.Header(),
+    checkoutReq {})
+	return resp.StatusCode == 200
 }
 
 func (p *Panera) URL(path string) *url.URL {
@@ -685,4 +689,17 @@ type discountReq struct {
   PromoCode string `json:"promoCode"`
 }
 
+type checkoutReq struct {
+  Payment payment `json:"payment"`
+  Customer customerSmsOptIn `json:"customer"`
+}
 
+type customerSmsOptIn struct {
+  SmsOptIn bool `json:"smsOptIn"`
+}
+
+type payment struct {
+  GiftCards []struct{} `json:"giftCards"`
+  CreditCards []struct{} `json:"creditCards"`
+  CampusCards []struct{} `json:"campusCards"`
+}
