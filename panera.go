@@ -312,13 +312,19 @@ func (p *Panera) Cart() []cartItem {
 	body, _ = ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
   json.Unmarshal(body, &cart)
-  cis = append(cis, cartItem{"Tax", 0/*cart.CartSummary.Tax*/})
-  cis = append(cis, cartItem{"Discount", 0/*cart.CartSummary.Discount*/})
-  for _, it := range cart.Items {
-    cost := it.Amount 
-    name := it.RenderSource.LogicalName 
+  //for _, it := range cart.Items {
+  //  cost := it.Amount 
+  //  name := it.RenderSource.LogicalName 
+  //  cis = append(cis, cartItem{name, cost})
+  //}
+  for _, it := range p.cart {
+    cost := it.cost
+    name := it.name
     cis = append(cis, cartItem{name, cost})
   }
+
+  cis = append(cis, cartItem{"Tax", 0/*cart.CartSummary.Tax*/})
+  cis = append(cis, cartItem{"Discount", 0/*cart.CartSummary.Discount*/})
 
   return cis
 }
