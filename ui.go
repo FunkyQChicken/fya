@@ -20,6 +20,9 @@ var logo = "" +
 "█▄▄▄█     █▄▄▄█ █▄▄█ █▄▄█  \n"
 
 var (
+  smolPad = lipgloss.NewStyle().
+    Padding(0, 2)
+
   fauxBlue = lipgloss.NewStyle().
 		Background(lipgloss.Color("62")).
 		Foreground(lipgloss.Color("230"))
@@ -386,8 +389,9 @@ func (c cartPreview) View() string {
     totalCost += it.cost
     costs += centsAsDollar(it.cost) +"\n"
   }
-  return fmt.Sprintf("%s\nTotal Cost: %s\n\n\n"+fauxBlue.Render("Would you like to place your order?")+"\n%s", 
+  return smolPad.Render(fmt.Sprintf("%s\n\n%s\nTotal Cost: %s\n\n%s", 
+    fauxBlue.Render("Would you like to place your order?"),
     lipgloss.JoinHorizontal(lipgloss.Top, items, right.Render(costs)),
     bold.Render(centsAsDollar(totalCost)),
-    subtle.Render("[Y]es/[N]o"))
+    subtle.Render("[Y]es/[N]o")))
 }
