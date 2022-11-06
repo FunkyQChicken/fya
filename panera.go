@@ -1,19 +1,13 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"net/url"
 	"os"
 
 	"github.com/joho/godotenv"
 )
-
 
 type Panera struct {
 	id int
@@ -39,11 +33,6 @@ func (p *Panera) CreateCart() {
 		log.Fatalln("Can’t create cart if credentials haven’t yet been loaded!")
 	}
 	
-	var err error
-	var req http.Request
-	var resp *http.Response
-	var body []byte
-	
 	var c cart = cart {
 		CreateGroupOrder: false,
 		Customer: customer {
@@ -59,7 +48,7 @@ func (p *Panera) CreateCart() {
 		Cafes: []cafe {
 			{
 				Pagernum: 0,
-				Id: fmt.Sprintf("%d", p.id),
+				Id: p.id,
 			},
 		},
 		ApplyDynamicPricing: true,
@@ -67,49 +56,18 @@ func (p *Panera) CreateCart() {
 			Destination: p.destinationCode,
 			Priority: "ASAP",
 			ClientType: "MOBILE_IOS",
-			DeliveryFee: "0.00",
+			DeliveryFee: 0.0,
 			LeadTime: 10,
 			LanguageCode: "en-US",
 		},
 	}
-	body, err = json.Marshal(c)
-	if err != nil {
-		// TODO: Handle error more gracefully
-		log.Fatalln(err)
-	}
-	
-	req = http.Request {
-		Method: "POST",
-		URL: p.URL("/cart"),
-		Header: p.Header(),
-		Body: io.NopCloser(bytes.NewBuffer(body)),
-	}
-	resp, err = http.DefaultClient.Do(&req)
-	if err != nil {
-		// TODO: Handle error more gracefully
-		log.Fatalln(err)
-	}
-	body, err = ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
-	if err != nil {
-		// TODO: Handle error more gracefully
-		log.Fatalln(err)
-	}
-	
-	// var f *os.File
-	// f, err = os.OpenFile("panera.log", os.O_CREATE | os.O_RDWR, 0666)
-	// defer f.Close()
-	// log.SetOutput(f)
-	// log.Output(1, string(body))
-	// var cartMarshal, _ = json.Marshal(c)
-	// log.Output(1, string(cartMarshal))
-	
-	var cr cartresp
-	err = json.Unmarshal(body, &cr)
-	if err != nil {
-		// TODO: Handle error more gracefully
-		log.Fatalln(err)
-	}
+
+  cr := postRequest[cart, cartresp](
+    p.URL("/cart"),
+    p.Header(),
+    c,
+  )
+
 	p.cartid = cr.Cartid
 	
 	p.cartCreated = true
@@ -119,60 +77,17 @@ func (p *Panera) Menu() []item {
 	if !p.credentialsLoaded {
 		log.Fatalln("Can’t construct menu if credentials haven’t yet been loaded!")
 	}
-	
-	var err error
-	var req http.Request
-	var resp *http.Response
-	var body []byte
-	
-	// Menu version
-	req = http.Request {
-		Method: "GET",
-		URL: p.URL(fmt.Sprintf("/%d/menu/version", p.id)),
-		Header: p.Header(),
-	}
-	resp, err = http.DefaultClient.Do(&req)
-	if err != nil {
-		// TODO: Handle error more gracefully
-		log.Fatalln(err)
-	}
-	body, err = ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
-	if err != nil {
-		// TODO: Handle error more gracefully
-		log.Fatalln(err)
-	}
-	var mv menuversion
-	err = json.Unmarshal(body, &mv)
-	if err != nil {
-		// TODO: Handle error more gracefully
-		log.Fatalln(err)
-	}
-	
-	// Menu
-	req = http.Request {
-		Method: "GET",
-		URL: p.URL(fmt.Sprintf("/en-US/203162/menu/v2/%s", mv.AggregateVersion)),
-		Header: p.Header(),
-	}
-	resp, err = http.DefaultClient.Do(&req)
-	if err != nil {
-		// TODO: Handle error more gracefully
-		log.Fatalln(err)
-	}
-	body, err = ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
-	if err != nil {
-		// TODO: Handle error more gracefully
-		log.Fatalln(err)
-	}
-	var m menu
-	err = json.Unmarshal(body, &m)
-	if err != nil {
-		// TODO: Handle error more gracefully
-		log.Fatalln(err)
-	}
 
+  mv := getRequest[menuversion](
+    p.URL(fmt.Sprintf("/%d/menu/version", p.id)),
+    p.Header(),
+  )
+
+  m := getRequest[menu](
+		p.URL(fmt.Sprintf("/en-US/%d/menu/v2/%s", p.id, mv.AggregateVersion)),
+    p.Header(),
+  )
+	
   ret := make([]item, 0, 100)
   for _, placard := range m.Placards {
     optsets := placard.OptSets
@@ -208,11 +123,6 @@ func (p *Panera) AddItem(i item) {
 		panic("Item added without an existing cart!")
 	}
 	
-	var err error
-	var req http.Request
-	var resp *http.Response
-	var body []byte
-	
 	var isa = itemsadd {
 		Items: []itemadd {
 			{
@@ -220,45 +130,19 @@ func (p *Panera) AddItem(i item) {
 				Itemid: float64(i.id),
 				Parentid: 0,
 				Composition: composition { },
-				MsgPreparedFor: fmt.Sprintf("%s %s", os.Getenv("FirstName"), os.Getenv("LastName")),
+				MsgPreparedFor: os.Getenv("FirstName"),
 				Quantity: 1,
 				Type: "PRODUCT",
 				Promotional: false,
 			},
 		},
 	}
-	body, err = json.Marshal(isa)
-	if err != nil {
-		// TODO: Handle error more gracefully
-		log.Fatalln(err)
-	}
-	
-	var u = p.URL(fmt.Sprintf("/v2/cart/%s/item", p.cartid))
-	u.RawQuery = "upsell=NONE&groupHost=false"
-	req = http.Request {
-		Method: "POST",
-		URL: u,
-		Header: p.Header(),
-		Body: io.NopCloser(bytes.NewBuffer(body)),
-	}
-	resp, err = http.DefaultClient.Do(&req)
-	if err != nil {
-		// TODO: Handle error more gracefully
-		log.Fatalln(err)
-	}
-	body, err = ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
-	if err != nil {
-		// TODO: Handle error more gracefully
-		log.Fatalln(err)
-	}
-	
-	var f *os.File
-	f, err = os.OpenFile("panera.log", os.O_CREATE | os.O_RDWR, 0666)
-	defer f.Close()
-	log.SetOutput(f)
-	log.Output(1, string(body))
-	
+
+  postRequestNoMarshal(
+	  p.URL(fmt.Sprintf("/v2/cart/%s/item", p.cartid) ), // hupsell=NONE&groupHost=false),
+    p.Header(),
+    isa)
+
 	p.cart = append(p.cart, i)
 }
 
@@ -284,47 +168,29 @@ func (p *Panera) ApplyDiscounts(d discount) {
         },
       },
   } 
-  body, _ := json.Marshal(discBody)
-	req := http.Request {
-		Method: "POST",
-		URL: p.URL(fmt.Sprintf("/cart/%s/discount", p.cartid)),
-		Header: p.Header(),
-		Body: io.NopCloser(bytes.NewBuffer(body)),
-	}
-  http.DefaultClient.Do(&req)
+  postRequestNoMarshal(
+		p.URL(fmt.Sprintf("/cart/%s/discount", p.cartid)),
+		p.Header(),
+    discBody)
 }
 
 func (p *Panera) Cart() []cartItem {
 	var cis []cartItem
 	cis = make([]cartItem, 0, len(p.cart) + 2) 
 
-  body, _ := json.Marshal(struct{}{}) // The request contains no data
-
-  req := http.Request {
-    Method: "POST",
-		URL: p.URL(fmt.Sprintf("/cart/%s/checkout?summary=true", p.cartid)),
-    Header: p.Header(),
-		Body: io.NopCloser(bytes.NewBuffer(body)),
-  }
-
-  var cart = &cart{}
-  resp, _ := http.DefaultClient.Do(&req)
-	body, _ = ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
-  json.Unmarshal(body, &cart)
-  //for _, it := range cart.Items {
-  //  cost := it.Amount 
-  //  name := it.RenderSource.LogicalName 
-  //  cis = append(cis, cartItem{name, cost})
-  //}
-  for _, it := range p.cart {
-    cost := it.cost
-    name := it.name
+  cart := postRequest[struct{}, cart](
+		p.URL(fmt.Sprintf("/cart/%s/checkout", p.cartid)), //?summary=true
+    p.Header(),
+    struct{}{})
+    
+  for _, it := range cart.Items {
+    cost := int(it.Amount * 100)
+    name := it.RenderSource.Name 
     cis = append(cis, cartItem{name, cost})
   }
 
-  cis = append(cis, cartItem{"Tax", 0/*cart.CartSummary.Tax*/})
-  cis = append(cis, cartItem{"Discount", 0/*cart.CartSummary.Discount*/})
+  cis = append(cis, cartItem{"Tax", int( 100 * cart.CartSummary.Tax)})
+  cis = append(cis, cartItem{"Discount", int(-100 * cart.CartSummary.Discount)})
 
   return cis
 }
@@ -392,12 +258,10 @@ func (pc *PaneraChain) GetName() string {
 func (pc *PaneraChain) LoadCredentials() bool {
 	var err error
 	err = godotenv.Load("panera.env")
-	if err != nil {
-		// TODO: Handle error more gracefully
-		log.Println(err)
-		log.Fatalln(err)
-		return false
-	}
+  todoHandleErrorBetter(err)
+  if err != nil {
+    return false
+  }
 	
 	var p *Panera
 	for _, p = range pc.restaurants {
@@ -434,7 +298,7 @@ type customer struct {
 
 type cafe struct {
 	Pagernum float64					`json:"pagerNum"`
-	Id string							`json:"id"`
+	Id int							`json:"id"`
 	Name string							`json:"name,omitempty"`
 	ExternalName string					`json:"externalName,omitempty"`
 	Address string						`json:"address,omitempty"`
@@ -455,7 +319,7 @@ type cartsummary struct {
 	Priority string						`json:"priority"`
 	ClientType string					`json:"clientType"`
 	AppVersion string					`json:"appVersion,omitempty"`
-	DeliveryFee string					`json:"deliveryFee"`
+	DeliveryFee float32					`json:"deliveryFee"`
 	SubTotal float64					`json:"subTotal,omitempty"`
 	TaxExempt bool						`json:"taxExempt,omitempty"`
 	TotalPrice float64					`json:"totalPrice,omitempty"`
@@ -465,10 +329,13 @@ type cartsummary struct {
 	OrderStartdt string					`json:"orderStartDT,omitempty"`
 	OrderFulfillmentdt string			`json:"orderFulfillmentDT,omitempty"`
 	SendToConcur bool					`json:"sendToConcur,omitempty"`
+  Tax float64               `json:"tax"`
+  Discount float64          `json:"discount"`
 }
 
 
 type cart struct {
+  OrderId string          `json:"orderId"` 
 	Cartid string						`json:"cartId,omitempty"`
 	CreateGroupOrder bool				`json:"createGroupOrder"`
 	Customer customer					`json:"customer"`
@@ -478,6 +345,8 @@ type cart struct {
 	SubscriberPricingSupported bool		`json:"subscriberPricingSupported,omitempty"`
 	CartSummary cartsummary				`json:"cartSummary"`
 	CartStatus string					`json:"cartStatus,omitempty"`
+  Items []paneraItem        `json:"items"`
+  Discounts []paneraDiscount `json:"discounts"`
 }
 
 
@@ -515,7 +384,7 @@ type itemsadd struct {
 
 
 type pkid struct {
-	Cafeid int							`json:"cafeId"`
+	CafeId int							`json:"cafeId"`
 	LangCode string						`json:"langCode"`
 	Versionid string					`json:"versionId"`
 	LangVersion string					`json:"langVersion"`
@@ -726,11 +595,94 @@ type menu struct {
 	AllowedAllergens []allergen			`json:"allowedAllergens"`
 }
 
+type paneraDiscount struct {
+  Disctype string   `json:"type"`
+  Name string       `json:"name"`
+  PromoCode string `json:"promoCode"`
+  Amount float64 `json:"amount"`
+  DiscCode  int64 `json:"discCode"`
+  Prerequiesite string `json:"prerequiesite"`
+  IsSharable bool `json:"isSharable"`
+  DiscountApplicationType string `json:"discountApplicationType"`
+  RedemptionCode string `json:"redemptionCode"`
+  AutoApply bool `json:"autoApply"`
+  SwapItemId int `json:"swapItemId"`
+}
+
+type paneraItems struct {
+  Items []paneraItem `json:"items"`
+}
+
+type paneraItem struct {
+  IsNoSideOption bool `json:"isNoSideOption"`
+  Itemid float32 `json:"itemid"`
+  Parentid int `json:"parentid"`
+  ShowTaxOnSeparateReceiptFlag int `json:"showTaxOnSeparateReceiptFlag"`
+  TaxBit int `json:"taxBit"`
+  TaxabilityIndicator string `json:"taxabilityIndicator"`
+  SequenceNum int `json:"sequenceNum"`
+  ItemId int `json:"itemId"`
+  Type string `json:"type"`
+  Name string `json:"name"`
+  Amount float32 `json:"amount"`
+  TotalPrice float32 `json:"totalPrice"`
+  Quantity int `json:"quantity"`
+  ItemDiscAmt float32 `json:"itemDiscAmt"`
+  AfterDiscAmt int `json:"afterDiscAmt"`
+  SalesTaxAmount int `json:"salesTaxAmount"`
+  MsgPreparedFor string `json:"msgPreparedFor"`
+  MsgKitchen string `json:"msgKitchen"`
+  Discounts []paneraDiscount `json:"discounts"`
+  RenderSource renderSource `json:"renderSource"`
+  Unavailable bool `json:"unavailable"`
+  StockedOut bool `json:"stockedOut"`
+  Promotional bool `json:"promotional"`
+  Composition composition `json:"composition"`
+  Portion string `json:"portion"`
+  Taxes []tax `json:"taxes"`
+}
+
+type tax struct {
+  TaxBit int `json:"taxBit"`
+  Description string `json:"description"`
+  Amount int `json:"amount"`
+}
+
+
+type renderSource struct {
+  ProductId int `json:"productId"`
+  ParentPlacardId int `json:"parentPlacardId"`
+  LogicalName string `json:"logicalName"`
+  MenuItemType string `json:"menuItemType"`
+  Name string `json:"name"`
+  Description string `json:"description"`
+  I18nName string `json:"i18nName"`
+  I18nDesc string `json:"i18nDesc"`
+  ImgKey string `json:"imgKey"`
+  IsAvailable int `json:"isAvailable"`
+  IsOptSet int `json:"isOptSet"`
+  Price float32 `json:"price"`
+  Portion string `json:"portion"`
+  Nutrients []nutrient `json:"nutrients"`
+  HasCustomizations bool `json:"hasCustomizations"`
+  AllowSpecialInstr bool `json:"allowSpecialInstr"`
+  Wellness []wellness `json:"wellness"`
+  I18nIngStmnt string `json:"i18nIngStmnt"`
+  DetailedIngredients string `json:"detailedIngredients"`
+  NutrientSuffix string `json:"nutrientSuffix"`
+  // includedInProduct 
+  //"availabilityExceptions"
+  //"selfServiceSwap"
+}
+
+
 type discountsReq struct {
-  Discounts []discountReq
+  Discounts []discountReq `json:"discounts"`
 }
 
 type discountReq struct {
   Disctype string  `json:"type"`
-  PromoCode string 
+  PromoCode string `json:"promoCode"`
 }
+
+
