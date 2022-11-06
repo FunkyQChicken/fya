@@ -22,6 +22,7 @@ type Panera struct {
 	destinationCode string
 	credentialsLoaded bool
 	cartCreated bool
+	cartid string
 	cart []item
 }
 
@@ -56,7 +57,7 @@ func (p *Panera) CreateCart() {
 			Priority: "ASAP",
 			ClientType: "MOBILE_IOS",
 			DeliveryFee: "0.00",
-			LeadTime: "10",
+			LeadTime: 10,
 			LanguageCode: "en-US",
 		},
 	}
@@ -69,7 +70,7 @@ func (p *Panera) CreateCart() {
 		Method: "POST",
 		URL: p.URL("/cart"),
 		Header: p.Header(),
-		Body: io.NopCloser(bytes.NewBuffer())),
+		Body: io.NopCloser(bytes.NewBuffer(body)),
 	}
 	resp, err = http.DefaultClient.Do(&req)
 	if err != nil {
@@ -82,6 +83,12 @@ func (p *Panera) CreateCart() {
 		// TODO: Handle error more gracefully
 		log.Fatalln(err)
 	}
+	
+	var f *os.File
+	f, err = os.OpenFile("panera.log", os.O_APPEND | os.O_CREATE | os.O_RDWR, 0666)
+	defer f.Close()
+	log.SetOutput(f)
+	log.Output(1, string(body))
 	
 	p.cartCreated = true
 }
@@ -178,6 +185,17 @@ func (p *Panera) AddItem(i item) {
 	if !p.cartCreated {
 		panic("Item added without an existing cart!")
 	}
+	
+	// var err error
+	// var req http.Request
+	// var resp *http.Response
+	// var body []byte
+	// 
+	// req = http.Request {
+	// 	Method: "POST",
+	// 	URL: p.URL(fmt.Sprintf("/v2/cart/%s}/item"), ),
+	// }
+	
 	p.cart = append(p.cart, i)
 }
 
