@@ -16,7 +16,7 @@ func (r *notFauxchain) Locations() []location {
 
 
 type fauxchain struct {
-  restraunts []location
+  restaurants []location
 }
 
 func InitFauxChain() fauxchain {
@@ -30,13 +30,13 @@ func InitFauxChain() fauxchain {
       address: "the north pole",
     },
   }
-  return fauxchain{restraunts: fauxstraunts}
+  return fauxchain{restaurants: fauxstraunts}
 }
 
 func (r *fauxchain) GetName() string {return "FauxChain"}
 func (r *fauxchain) LoadCredentials() bool {return false}
 func (r *fauxchain) Login(token string) bool {return true}
-func (r *fauxchain) Locations() []location {return r.restraunts}
+func (r *fauxchain) Locations() []location {return r.restaurants}
 
 
 type fauxstraunt struct {

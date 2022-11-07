@@ -165,7 +165,7 @@ func initChainPicker() picker {
     chainItems[i] = chainItem{v}
   }
   lst := list.New(chainItems, list.NewDefaultDelegate(), 0, 0)
-  lst.Title = "Pick your restraunt chain"
+  lst.Title = "Pick your restaurant chain"
   return picker {lst, nil, nil, false}
 }
 
@@ -175,7 +175,7 @@ func (p * picker) intoLocPicker() {
   for i, v := range locations {
     locationItems[i] = locationItem{v}
   }
-  p.list.Title = "Pick your restraunt location"
+  p.list.Title = "Pick your restaurant location"
   p.list.SetItems(locationItems)
   p.list.ResetFilter()
   p.list.ResetSelected()
