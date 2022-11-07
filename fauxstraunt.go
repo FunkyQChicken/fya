@@ -7,7 +7,7 @@ func InitNotFauxChain() notFauxchain {
 }
 func (r *notFauxchain) GetName() string {return "NotFaux Chain"}
 func (r *notFauxchain) LoadCredentials() bool {return false}
-func (r *notFauxchain) Login(username string, password string) bool {return true}
+func (r *notFauxchain) Login(token string) bool {return true}
 func (r *notFauxchain) Locations() []location {
   fauxchain :=  InitFauxChain()
   return (&fauxchain).Locations()
@@ -35,7 +35,7 @@ func InitFauxChain() fauxchain {
 
 func (r *fauxchain) GetName() string {return "FauxChain"}
 func (r *fauxchain) LoadCredentials() bool {return false}
-func (r *fauxchain) Login(username string, password string) bool {return true}
+func (r *fauxchain) Login(token string) bool {return true}
 func (r *fauxchain) Locations() []location {return r.restraunts}
 
 

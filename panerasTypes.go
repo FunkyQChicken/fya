@@ -1,5 +1,49 @@
 package main
 
+type credentials struct {
+  AuthToken string `json:"authToken"`
+  // ApiToken string
+  // DeviceId string
+  Email string `json:"email"`
+  Phone string `json:"phone"`
+  Id string `json:"id"`
+  LastName string `json:"lastname"`
+  FirstName string `json:"firstname"`
+  Loyaltynum string `json:"loyaltyNum"`
+}
+
+type Panera struct {
+	id int
+	description string
+	address string
+	destinationCode string
+	cartCreated bool
+	cartid string
+	cart []item
+  parent *PaneraChain
+}
+
+type PaneraChain struct {
+  credsLoaded bool
+  creds credentials
+	name string
+	restaurants []*Panera
+}
+
+type tokenResp struct {
+  AccessToken  string  `json:"accessToken"`
+  EmailAddress string  `json:"emailAddress"`
+  FirstName    string  `json:"firstName"`
+  LastName     string  `json:"lastName"`
+  PhoneNumber  string  `json:"phoneNumber"`
+  CustomerId   int     `json:"customerId"`
+  Loyalty      loyalty `json:"loyalty"`
+}
+
+type loyalty struct {
+  CardNumber string `json:"cardNumber"`
+}
+
 type customer struct {
 	Email string						`json:"email"`
 	Phone string						`json:"phone"`

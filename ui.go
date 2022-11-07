@@ -220,8 +220,8 @@ func (p picker) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
             ch, ok  := p.list.SelectedItem().(chainItem)
             if ok {
               p.chain = ch.c
-              p.intoLocPicker()
               if p.chain.LoadCredentials() {
+                p.intoLocPicker()
                 return p, nil
               } else {
                 sI := InitSignIn(p)
@@ -270,26 +270,19 @@ func (p picker) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 type SignIn struct {
   next picker
-  username textinput.Model
-  password textinput.Model
+  token textinput.Model
   attempts int
 }
 
 func InitSignIn(next picker) SignIn {
-  username := textinput.New()
-  username.Focus() 
-  username.Placeholder = "John Doe"
-  username.Prompt = "> "
-
-  password := textinput.New()
-  password.Placeholder = "hunter2"
-  password.EchoMode = textinput.EchoPassword
-  password.Prompt = "> "
+  token := textinput.New()
+  token.Focus() 
+  token.Placeholder = "1fd341-..."
+  token.Prompt = "> "
 
   return SignIn {
     next: next,
-    username: username,
-    password: password,
+    token: token,
     attempts: 0,
   }
 }
@@ -298,55 +291,31 @@ func (s SignIn) Init() tea.Cmd {return textinput.Blink }
 
 func (s SignIn) View() string {
   return lipgloss.JoinVertical(0, 
-    "  " + fauxBlue.Render("Credentials not found, please sign in")+ "\n",
+    "  " + fauxBlue.Render("Credentials not found, please provide auth token")+ "\n",
     inputStyle.Render(
-      fmt.Sprintf("Username:\n%s", s.username.View()),
-    ),
-    inputStyle.Render(
-      fmt.Sprintf("Password:\n%s", s.password.View()),
+      fmt.Sprintf("Auth Token:\n%s", s.token.View()),
     ),
   )
 }
 
-func (s * SignIn) toggleFocus() tea.Cmd {
-  if s.username.Focused() {
-    s.username.Blur()
-    return s.password.Focus()
-  } else {
-    s.password.Blur()
-    return s.username.Focus()
-  }
-}
-
 func (s SignIn) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-  var foc tea.Cmd = nil
   switch msg := msg.(type) {
     case tea.KeyMsg:
       switch msg.String() {
-        case "tab", "shift+tab":
-          foc = s.toggleFocus()
         case "enter":
-          if s.username.Focused() {
-            foc = s.toggleFocus()
-          } else {
-            if (s.next.chain.Login(s.username.Value(), s.password.Value())) {
-              return s.next, nil
-            } else {
-              foc = s.toggleFocus()
-            }
+          if s.next.chain.Login(s.token.Value()) {
+            s.next.intoLocPicker()
+            return s.next, nil
           }
       }
     case tea.WindowSizeMsg:
       width := msg.Width - inputStyle.GetHorizontalBorderSize() 
-      s.username.Width = width - 3
-      s.password.Width = width - 3
+      s.token.Width = width - 3
   }
 
-  var pcmd tea.Cmd
-  var ucmd tea.Cmd
-  s.username, ucmd = s.username.Update(msg)
-  s.password, pcmd = s.password.Update(msg)
-  return s, tea.Batch(ucmd, pcmd, foc)
+  var cmd tea.Cmd
+  s.token, cmd = s.token.Update(msg)
+  return s, cmd
 }
 
 

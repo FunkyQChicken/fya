@@ -2,7 +2,7 @@ package main
 
 type chain interface {
   GetName() string;
-  Login(username string, password string) bool;
+  Login(token string) bool;
   LoadCredentials() bool;
   Locations() []location;
 }

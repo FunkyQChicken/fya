@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+  "os"
 )
 
 func todoHandleErrorBetter(err error) {
@@ -15,6 +16,11 @@ func todoHandleErrorBetter(err error) {
     log.Fatalln(err)
   }
 }
+
+func getConfigFilePath(name string) string {
+  return name // TODO get path to config directory
+}
+
 
 func checkStatusCode[T any](resp *http.Response, body T) {
   if resp.StatusCode > 299 || resp.StatusCode < 200 {
@@ -28,6 +34,10 @@ func checkStatusCode[T any](resp *http.Response, body T) {
   }
 }
 
+func logRequest(req http.Request) {
+  log.Printf("Info: %S request on url (%s)", req.Method, req.URL)
+}
+
 func responseToJson[R any](resp *http.Response) R {
 	var rData R
 
@@ -37,7 +47,6 @@ func responseToJson[R any](resp *http.Response) R {
   }
 	resp.Body.Close()
 
-  log.Printf("Info on json response: \n\turl: %v\n\tjson: %s\n", resp.Request.URL, rBody)
 	err = json.Unmarshal(rBody, &rData)
   if err != nil {
     log.Fatalf(
@@ -68,6 +77,7 @@ func postRequestNoMarshal[Q any](uri *url.URL, headers map[string][]string, data
 		Header: headers,
 		Body: io.NopCloser(bytes.NewBuffer(qBody)),
 	}
+  logRequest(req)
 	resp, err := http.DefaultClient.Do(&req)
   if err != nil {
     log.Fatalf(
@@ -87,12 +97,13 @@ func postRequest[Q any, R any](uri *url.URL, headers map[string][]string, data Q
 }
 
 
-func getRequest[R any](uri *url.URL, headers map[string][]string) R {
+func getRequestNoMarshal(uri *url.URL, headers map[string][]string) *http.Response {
 	req := http.Request {
 		Method: "GET",
 		URL: uri,
 		Header: headers,
 	}
+  logRequest(req)
 	resp, err := http.DefaultClient.Do(&req)
   if err != nil {
     log.Fatalf(
@@ -103,5 +114,35 @@ func getRequest[R any](uri *url.URL, headers map[string][]string) R {
   }
   checkStatusCode(resp, "*GET request; no body*")
 
+  return resp
+}
+
+func getRequest[R any](uri *url.URL, headers map[string][]string) R {
+  resp := getRequestNoMarshal(uri, headers)
   return responseToJson[R](resp)
+}
+
+func saveAsJsonToFile[T any](data T, filename string) {
+  filename = getConfigFilePath(filename)
+  datajson, err := json.Marshal(data)
+  todoHandleErrorBetter(err)
+  file, err := os.OpenFile(filename, os.O_TRUNC|os.O_WRONLY, 0600)
+  todoHandleErrorBetter(err)
+  _, err = file.Write(datajson)
+  todoHandleErrorBetter(err)
+  file.Close()
+}
+
+func tryLoadFromJsonToFile[T any](filename string) (T, bool) {
+  var ret T
+  filename = getConfigFilePath(filename)
+  file, err := os.OpenFile(filename, os.O_RDONLY, 0600)
+  if err != nil {
+    return ret, false
+  }
+  data, err := io.ReadAll(file)
+  file.Close()
+  json.Unmarshal(data, &ret)
+  todoHandleErrorBetter(err)
+  return ret, true
 }

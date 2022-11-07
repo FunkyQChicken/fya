@@ -5,20 +5,9 @@ import (
 	"log"
 	"net/url"
 	"os"
-
-	"github.com/joho/godotenv"
 )
 
-type Panera struct {
-	id int
-	description string
-	address string
-	destinationCode string
-	credentialsLoaded bool
-	cartCreated bool
-	cartid string
-	cart []item
-}
+const paneraCredsFile = "panera_creds.json"
 
 func (p *Panera) GetDescription() string {
 	return p.description
@@ -29,20 +18,16 @@ func (p *Panera) GetAddress() string {
 }
 
 func (p *Panera) CreateCart() {
-	if !p.credentialsLoaded {
-		log.Fatalln("Can’t create cart if credentials haven’t yet been loaded!")
-	}
-	
 	var c cart = cart {
 		CreateGroupOrder: false,
 		Customer: customer {
-			Email: os.Getenv("Email"),
-			Phone: os.Getenv("Phone"),
-			Id: os.Getenv("Id"),
-			LastName: os.Getenv("LastName"),
-			FirstName: os.Getenv("FirstName"),
-			IdentityProvider: os.Getenv("IdentityProvider"),
-			Loyaltynum: os.Getenv("Loyaltynum"),
+			Email: p.parent.creds.Email,
+			Phone: p.parent.creds.Phone,
+			Id: p.parent.creds.Id,
+			LastName: p.parent.creds.LastName,
+			FirstName: p.parent.creds.FirstName,
+			IdentityProvider: "PANERA",
+			Loyaltynum: p.parent.creds.Loyaltynum,
 		},
 		ServiceFeeSupported: true,
 		Cafes: []cafe {
@@ -63,8 +48,8 @@ func (p *Panera) CreateCart() {
 	}
 
   cr := postRequest[cart, cartresp](
-    p.URL("/cart"),
-    p.Header(),
+    pURL("/cart"),
+    p.parent.creds.authdHeader(),
     c,
   )
 
@@ -74,18 +59,14 @@ func (p *Panera) CreateCart() {
 }
 
 func (p *Panera) Menu() []item {
-	if !p.credentialsLoaded {
-		log.Fatalln("Can’t construct menu if credentials haven’t yet been loaded!")
-	}
-
   mv := getRequest[menuversion](
-    p.URL(fmt.Sprintf("/%d/menu/version", p.id)),
-    p.Header(),
+    pURL(fmt.Sprintf("/%d/menu/version", p.id)),
+    p.parent.creds.authdHeader(),
   )
 
   m := getRequest[menu](
-		p.URL(fmt.Sprintf("/en-US/%d/menu/v2/%s", p.id, mv.AggregateVersion)),
-    p.Header(),
+		pURL(fmt.Sprintf("/en-US/%d/menu/v2/%s", p.id, mv.AggregateVersion)),
+    p.parent.creds.authdHeader(),
   )
 	
   ret := make([]item, 0, 100)
@@ -139,8 +120,8 @@ func (p *Panera) AddItem(i item) {
 	}
 
   postRequestNoMarshal(
-	  p.URL(fmt.Sprintf("/v2/cart/%s/item", p.cartid) ), // hupsell=NONE&groupHost=false),
-    p.Header(),
+	  pURL(fmt.Sprintf("/v2/cart/%s/item", p.cartid) ), // hupsell=NONE&groupHost=false),
+    p.parent.creds.authdHeader(),
     isa)
 
 	p.cart = append(p.cart, i)
@@ -169,8 +150,8 @@ func (p *Panera) ApplyDiscounts(d discount) {
       },
   } 
   postRequestNoMarshal(
-		p.URL(fmt.Sprintf("/cart/%s/discount", p.cartid)),
-		p.Header(),
+		pURL(fmt.Sprintf("/cart/%s/discount", p.cartid)),
+    p.parent.creds.authdHeader(),
     discBody)
 }
 
@@ -179,8 +160,8 @@ func (p *Panera) Cart() []cartItem {
 	cis = make([]cartItem, 0, len(p.cart) + 2) 
 
   cart := postRequest[struct{}, cart](
-		p.URL(fmt.Sprintf("/cart/%s/checkout", p.cartid)), //?summary=true
-    p.Header(),
+		pURL(fmt.Sprintf("/cart/%s/checkout", p.cartid)), //?summary=true
+    p.parent.creds.authdHeader(),
     struct{}{})
     
   for _, it := range cart.Items {
@@ -198,13 +179,13 @@ func (p *Panera) Cart() []cartItem {
 func (p *Panera) Checkout() bool {
 	// TODO: Actually check out
   resp := postRequestNoMarshal(
-    p.URL(fmt.Sprintf("/payment/v2/slot-submit/%s", p.cartid)),
-    p.Header(),
+    pURL(fmt.Sprintf("/payment/v2/slot-submit/%s", p.cartid)),
+    p.parent.creds.authdHeader(),
     checkoutReq {})
 	return resp.StatusCode == 200
 }
 
-func (p *Panera) URL(path string) *url.URL {
+func  pURL(path string) *url.URL {
 	return &url.URL {
 		Scheme: "https",
 		Host: "services-mob.panerabread.com",
@@ -212,47 +193,50 @@ func (p *Panera) URL(path string) *url.URL {
 	}
 }
 
-func (p *Panera) Header() map[string][]string {
-	return map[string][]string {
-		"auth_token": {
-			os.Getenv("auth_token"),
-		},
+func basicHeader() map[string][]string{
+  return map[string][]string {
+    // Yes, it looks like I've commited an API key
+    // Alas, you'd be incorrect
+    // It seems that Panera uses one api token for all mobile devices
+    "api_token": {
+      "bcf0be75-0de6-4af0-be05-13d7470a85f2",
+    },
 		"appVersion": {
 			"4.71.0",
-		},
-		"api_token": {
-			os.Getenv("api_token"),
 		},
 		"Content-Type": {
 			"application/json",
 		},
-		"deviceId": {
-			os.Getenv("deviceId"),
-		},
 		"User-Agent": {
 			"Panera/4.69.9 (iPhone; iOS 16.2; Scale/3.00)",
 		},
-	}
+  }
+}
+
+func (c *credentials) authdHeader() map[string][]string {
+  ret := basicHeader()
+  ret["auth_token"] = []string{c.AuthToken}
+  //ret["deviceId"] = []string{c.DeviceId}
+  return ret
 }
 
 
-type PaneraChain struct {
-	name string
-	restaurants []*Panera
-}
 
 func InitPaneraChain() PaneraChain {
-	return PaneraChain {
+	pc := PaneraChain {
 		name: "Panera",
-		restaurants: []*Panera {
-			&(Panera {
-				id: 203162,
-				description: "Rensselaer Union",
-				address: "110 8th Street\nTroy, NY 12180",
-				destinationCode: "RPU",
-			}),
-		},
 	}
+  pc.restaurants = []*Panera {
+    &(Panera {
+      id: 203162,
+      description: "Rensselaer Union",
+      address: "110 8th Street\nTroy, NY 12180",
+      destinationCode: "RPU",
+      parent: &pc,
+    }),
+  }
+
+  return pc
 }
 
 func (pc *PaneraChain) GetName() string {
@@ -260,26 +244,54 @@ func (pc *PaneraChain) GetName() string {
 }
 
 func (pc *PaneraChain) LoadCredentials() bool {
-	var err error
-	err = godotenv.Load("panera.env")
-  todoHandleErrorBetter(err)
-  if err != nil {
-    return false
+  log.Println("Load Credentials called")
+  creds, loaded := tryLoadFromJsonToFile[credentials](paneraCredsFile)
+  if (loaded) {
+    log.Println("they loaded!")
+    pc.creds = creds
+    pc.credsLoaded = true
   }
-	
-	var p *Panera
-	for _, p = range pc.restaurants {
-		p.credentialsLoaded = true
-	}
-	
-	return true
+	return loaded
 }
 
-func (pc *PaneraChain) Login(username string, password string) bool {
-	return true
+func (pc *PaneraChain) Login(token string) bool {
+  if pc.credsLoaded {
+    log.Fatalln("ERROR: Can't log in again, credentials already loaded")
+  }
+  // send login request
+  rawLoginResp := getRequestNoMarshal(
+    pURL(fmt.Sprintf("/token/%s", token)),
+    basicHeader(),
+  )  
+  
+  if rawLoginResp.StatusCode != 200 {
+    return false
+  }
+  
+  loginResp := responseToJson[tokenResp](rawLoginResp)
+
+  creds := credentials{
+    AuthToken: loginResp.AccessToken,
+    Email: loginResp.EmailAddress,
+    Phone: loginResp.PhoneNumber,
+    Id: fmt.Sprint(loginResp.CustomerId),
+    FirstName: loginResp.FirstName,
+    LastName: loginResp.LastName,
+    Loyaltynum: loginResp.Loyalty.CardNumber,
+  }
+
+  pc.creds = creds
+
+  saveAsJsonToFile(creds, paneraCredsFile)
+
+  return true
 }
 
 func (pc *PaneraChain) Locations() []location {
+	if !pc.credsLoaded {
+		log.Fatalln("Can’t get locations if credentials haven’t yet been loaded!")
+	}
+	
 	var ls []location = make([]location, 0, len(pc.restaurants))
 	var p *Panera
 	for _, p = range pc.restaurants {
@@ -287,4 +299,3 @@ func (pc *PaneraChain) Locations() []location {
 	}
 	return ls
 }
-
