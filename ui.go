@@ -1,11 +1,12 @@
 package main
 
-
 import (
-	"github.com/charmbracelet/bubbles/textinput"
+	"fmt"
+
 	"github.com/charmbracelet/bubbles/list"
-  tea "github.com/charmbracelet/bubbletea"
-  "fmt"
+	"github.com/charmbracelet/bubbles/spinner"
+	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -73,46 +74,98 @@ func centsAsDollar(cents int) string {
   }
   return fmt.Sprintf("%s$%d.%s%d", negative, dollars, padding, cents)
 }
+var header = "Order with style"
+
+type stopSpinningMsg struct {msg tea.Msg}
+type startSpinningMsg struct {message string}
+
+func startSpinning(message string) func() tea.Msg {
+  return func() tea.Msg {
+    return startSpinningMsg{message}
+  }
+}
+
+func spinWhile(message string, f func() tea.Msg) tea.Cmd {
+  return tea.Batch(
+    startSpinning(message),
+    func() tea.Msg { return stopSpinningMsg{f()}},
+  )
+}
 
 type app struct {
   child tea.Model
-}
-var header = "Order with style"
-func initApp() app { 
-  return app { 
-    child: initChainPicker(), 
-  } 
+  waitingOnIo bool
+  spinner spinner.Model
+  waitingMessage string
 }
 
-func (a app) Init() tea.Cmd { return a.child.Init() }
+func initApp() app { 
+  ret := app { 
+    child: initChainPicker(), 
+    waitingOnIo: false,
+    spinner: spinner.New(),
+    waitingMessage: "",
+  } 
+  ret.spinner.Spinner = spinner.Dot
+  return ret
+}
+
+func (a app) Init() tea.Cmd { 
+  return tea.Batch(a.child.Init(), spinner.Tick)
+}
+
 func (a app) View() string { 
+  spin := "\n"
+  if a.waitingOnIo {
+    spin = fmt.Sprintf("   %s %s...\n", 
+      a.spinner.View(), 
+      a.waitingMessage)
+  }
   return winStyle.Render(
     lipgloss.JoinVertical(
       0.0,
       titleStyle.Render(lipgloss.JoinHorizontal(lipgloss.Center, logo, header)),
+      spin,
       bodyStyle.Render(a.child.View()),
     ))
 }
+
 func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-  switch msgType := msg.(type) {
+  var spinCmd tea.Cmd = nil
+
+  switch castMsg := msg.(type) {
     case tea.KeyMsg:
-      switch msgType.String() {
+      switch castMsg.String() {
         case "ctrl+c":
           return a, tea.Quit
       }
     case tea.WindowSizeMsg:
       h, v := winStyle.GetFrameSize()
-      msgType.Height -=  v // to account for margins
-      msgType.Width = winStyle.GetWidth()
-      msgType.Width -= h
+      castMsg.Height -=  v // to account for margins
+      castMsg.Width = winStyle.GetWidth()
+      castMsg.Width -= h
       
-      msgType.Height -= (7 + v) // to account for header
+      castMsg.Height -= (7 + v) // to account for header
+      castMsg.Height -= 1 // to account for spinnner
 
-      msg = msgType
+      msg = castMsg
+    case startSpinningMsg:
+      a.waitingMessage = castMsg.message
+      a.waitingOnIo = true
+
+    case stopSpinningMsg:
+      msg = castMsg.msg
+      a.waitingOnIo = false
+    default:
+      a.spinner, spinCmd = a.spinner.Update(msg)
   }
-  child, cmd := a.child.Update(msg)
-  a.child = child
-  return a, cmd
+  var cmd tea.Cmd = nil
+  if !a.waitingOnIo {
+    child, c := a.child.Update(msg)
+    cmd = c
+    a.child = child
+  }
+  return a, tea.Batch(cmd, spinCmd)
 }
 
 
@@ -181,9 +234,7 @@ func (p * picker) intoLocPicker() {
   p.list.ResetSelected()
 }
 
-func (p * picker) intoFoodPicker() {
-  p.location.CreateCart()
-  menu := p.location.Menu()
+func (p * picker) intoFoodPicker(menu []item) {
   menuItems := make([]list.Item, len(menu))
   for i, v := range menu {
     menuItems[i] = menuItem{v}
@@ -230,12 +281,12 @@ func (p picker) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
               }
             }
           } else if p.location == nil {
-            loc, ok := p.list.SelectedItem().(locationItem)
-            if ok {
-              p.location = loc.c
-              p.intoFoodPicker()
-              return p, nil
-            }
+            loc, _ := p.list.SelectedItem().(locationItem)
+            p.location = loc.c
+            return p, spinWhile("getting menu", func() tea.Msg {
+              p.location.CreateCart()
+              return p.location.Menu()
+            })
           } else if !p.foodChosen {
             men, ok := p.list.SelectedItem().(menuItem)
             if ok {
@@ -259,6 +310,8 @@ func (p picker) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
       }
     case tea.WindowSizeMsg:
       p.list.SetSize(msg.Width, msg.Height)
+    case []item:
+      p.intoFoodPicker(msg)
 	}
 
 	var cmd tea.Cmd
@@ -343,9 +396,6 @@ func (c cartPreview) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
         c.location.Checkout()
         header = "Order Placed!"
         return c, tea.Quit
-      case "b", "B", "n", "N":
-        c.prev.foodChosen = false
-        c.prev.intoFoodPicker()
         return c.prev, nil
       case "c", "C", "q", "Q":
         header = "Order Canceled!"

@@ -24,18 +24,22 @@ func getConfigFilePath(name string) string {
 
 func checkStatusCode[T any](resp *http.Response, body T) {
   if resp.StatusCode > 299 || resp.StatusCode < 200 {
+    text, _ := io.ReadAll(resp.Body)
+    resp.Body.Close()
+
     log.Printf(
-      "WARNING: status code %s on %s request on \n\turl: %v\n\trequest: %#v\n\treq data: %#v\n",
+      "WARNING: status code %s on %s request on \n\turl: %v\n\trequest: %#v\n\treq data: %#v\n\tresp data: %#v\n",
       resp.Status,
       resp.Request.Method,
       resp.Request.URL, 
       resp.Request,
-      body)
+      body,
+      string(text[:]))
   }
 }
 
 func logRequest(req http.Request) {
-  log.Printf("Info: %S request on url (%s)", req.Method, req.URL)
+  log.Printf("Info: %s request on url (%s)", req.Method, req.URL)
 }
 
 func responseToJson[R any](resp *http.Response) R {
@@ -87,7 +91,7 @@ func postRequestNoMarshal[Q any](uri *url.URL, headers map[string][]string, data
       err)
   }
   checkStatusCode(resp, data)
-
+  
   return resp
 }
 
