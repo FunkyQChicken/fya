@@ -216,14 +216,14 @@ func basicHeader() map[string][]string{
 func (c *credentials) authdHeader() map[string][]string {
   ret := basicHeader()
   ret["auth_token"] = []string{c.AuthToken}
-  //ret["deviceId"] = []string{c.DeviceId}
+  ret["deviceId"] = []string{c.AuthToken}
   return ret
 }
 
 
 
-func InitPaneraChain() PaneraChain {
-	pc := PaneraChain {
+func InitPaneraChain() *PaneraChain {
+	pc := &PaneraChain {
 		name: "Panera",
 	}
   pc.restaurants = []*Panera {
@@ -232,7 +232,7 @@ func InitPaneraChain() PaneraChain {
       description: "Rensselaer Union",
       address: "110 8th Street\nTroy, NY 12180",
       destinationCode: "RPU",
-      parent: &pc,
+      parent: pc,
     }),
   }
 
@@ -254,31 +254,33 @@ func (pc *PaneraChain) LoadCredentials() bool {
 	return loaded
 }
 
-func (pc *PaneraChain) Login(token string) bool {
+func (pc *PaneraChain) LoginFields() map[string]string {
+  return map[string]string {
+    "Email": "john@gmail.com",
+    "Phone #": "2238008000",
+    "Cookie": "_abck=....",
+  }
+}
+
+func (pc *PaneraChain) Login(fields map[string]string) bool {
   if pc.credsLoaded {
     log.Fatalln("ERROR: Can't log in again, credentials already loaded")
   }
   // send login request
-  rawLoginResp := getRequestNoMarshal(
-    pURL(fmt.Sprintf("/token/%s", token)),
-    basicHeader(),
-  )  
   
-  if rawLoginResp.StatusCode != 200 {
-    return false
-  }
   
-  loginResp := responseToJson[tokenResp](rawLoginResp)
 
   creds := credentials{
-    AuthToken: loginResp.AccessToken,
-    Email: loginResp.EmailAddress,
-    Phone: loginResp.PhoneNumber,
-    Id: fmt.Sprint(loginResp.CustomerId),
-    FirstName: loginResp.FirstName,
-    LastName: loginResp.LastName,
-    Loyaltynum: loginResp.Loyalty.CardNumber,
+   // AuthToken: AccessToken,
+   // Email: EmailAddress,
+   // Phone: PhoneNumber,
+   // Id: fmt.Sprint(loginResp.CustomerId),
+   // FirstName: FirstName,
+   // LastName: LastName,
+   // Loyaltynum: Loyalty.CardNumber,
   }
+
+  // TODO send request to check deats
 
   pc.creds = creds
 

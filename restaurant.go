@@ -2,7 +2,8 @@ package main
 
 type chain interface {
   GetName() string;
-  Login(token string) bool;
+  LoginFields() map[string]string;
+  Login(fields map[string]string) bool;
   LoadCredentials() bool;
   Locations() []location;
 }
@@ -44,5 +45,5 @@ var pc = InitPaneraChain()
 var Chains = []chain {
   &fc,
   &nfc,
-  &pc,
+  pc,
 }

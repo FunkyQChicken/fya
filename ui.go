@@ -77,19 +77,17 @@ func centsAsDollar(cents int) string {
 var header = "Order with style"
 
 type stopSpinningMsg struct {msg tea.Msg}
-type startSpinningMsg struct {message string}
-
-func startSpinning(message string) func() tea.Msg {
-  return func() tea.Msg {
-    return startSpinningMsg{message}
-  }
-}
+type startSpinningMsg struct {message string; callback tea.Cmd}
 
 func spinWhile(message string, f func() tea.Msg) tea.Cmd {
-  return tea.Batch(
-    startSpinning(message),
-    func() tea.Msg { return stopSpinningMsg{f()}},
-  )
+  return func() tea.Msg { 
+    return startSpinningMsg {
+      message: message,
+      callback: func() tea.Msg { 
+        return stopSpinningMsg{f()}
+      },
+    }
+  }
 }
 
 type app struct {
@@ -152,10 +150,12 @@ func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
     case startSpinningMsg:
       a.waitingMessage = castMsg.message
       a.waitingOnIo = true
+      return a, castMsg.callback
 
     case stopSpinningMsg:
       msg = castMsg.msg
       a.waitingOnIo = false
+
     default:
       a.spinner, spinCmd = a.spinner.Update(msg)
   }
@@ -321,21 +321,45 @@ func (p picker) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 
 
+
+type SignInField struct {
+  fieldname string
+  input textinput.Model
+}
+
+func (s SignInField) View() string {
+    return inputStyle.Render(fmt.Sprintf("  %s:\n%s", s.fieldname, s.input.View()))
+}
+
+func initSignInField(fieldname string, placeholder string) SignInField {
+  input := textinput.New()
+  input.Placeholder = placeholder
+  input.Prompt = "> "
+  return SignInField{fieldname, input}
+}
+
 type SignIn struct {
+  fields []SignInField
+  currField int
   next picker
-  token textinput.Model
   attempts int
 }
 
+
 func InitSignIn(next picker) SignIn {
-  token := textinput.New()
-  token.Focus() 
-  token.Placeholder = "1fd341-..."
-  token.Prompt = "> "
+  requiredFields := next.chain.LoginFields()
+  fields := make([]SignInField, 0, len(requiredFields))
+  
+  for fieldname, placeholder := range requiredFields {
+    fields = append(fields, initSignInField(fieldname, placeholder))
+  }
+  currField := 0
+  fields[currField].input.Focus()
 
   return SignIn {
+    fields: fields,
     next: next,
-    token: token,
+    currField: currField,
     attempts: 0,
   }
 }
@@ -343,32 +367,62 @@ func InitSignIn(next picker) SignIn {
 func (s SignIn) Init() tea.Cmd {return textinput.Blink }
 
 func (s SignIn) View() string {
-  return lipgloss.JoinVertical(0, 
-    "  " + fauxBlue.Render("Credentials not found, please provide auth token")+ "\n",
-    inputStyle.Render(
-      fmt.Sprintf("Auth Token:\n%s", s.token.View()),
-    ),
-  )
+  ret := fauxBlue.Render("Credentials not found, please provide auth token")+ "\n"
+  for _, field := range s.fields {
+    ret = lipgloss.JoinVertical(0,
+      ret,
+      field.View())
+  }
+
+  return ret
+}
+
+func (s * SignIn) moveFocus(offset int) tea.Cmd {
+  nextField := (s.currField + offset + len(s.fields)) % len(s.fields)
+  s.fields[s.currField].input.Blur()
+  s.currField = nextField
+  return s.fields[nextField].input.Focus()
+}
+
+func (s * SignIn) tryLogin() bool {
+  loginDict := make(map[string] string, len(s.fields))
+  for _, field := range s.fields {
+    loginDict[field.fieldname] = field.input.Value()
+  }
+  return s.next.chain.Login(loginDict)
 }
 
 func (s SignIn) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+  var foc tea.Cmd
   switch msg := msg.(type) {
     case tea.KeyMsg:
       switch msg.String() {
         case "enter":
-          if s.next.chain.Login(s.token.Value()) {
-            s.next.intoLocPicker()
-            return s.next, nil
-          }
+          if s.currField == len(s.fields) - 1 {
+            if (s.tryLogin()) {
+              s.next.intoLocPicker()
+              return s.next, nil 
+            }
+          } 
+          foc = s.moveFocus(1)
+        case "tab":
+          foc = s.moveFocus(1)
+        case "shift+tab":
+          foc = s.moveFocus(-1)
       }
     case tea.WindowSizeMsg:
       width := msg.Width - inputStyle.GetHorizontalBorderSize() 
-      s.token.Width = width - 3
+      for i := range s.fields {
+        s.fields[i].input.Width = width - 3
+      }
   }
 
-  var cmd tea.Cmd
-  s.token, cmd = s.token.Update(msg)
-  return s, cmd
+  cmds := make([]tea.Cmd, len(s.fields) + 1)
+  for i := range s.fields {
+    s.fields[i].input, cmds[i + 1] = s.fields[i].input.Update(msg)
+  }
+  cmds[0] = foc
+  return s, tea.Batch(cmds...)
 }
 
 
@@ -396,7 +450,6 @@ func (c cartPreview) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
         c.location.Checkout()
         header = "Order Placed!"
         return c, tea.Quit
-        return c.prev, nil
       case "c", "C", "q", "Q":
         header = "Order Canceled!"
         return c, tea.Quit

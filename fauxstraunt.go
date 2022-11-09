@@ -7,7 +7,13 @@ func InitNotFauxChain() notFauxchain {
 }
 func (r *notFauxchain) GetName() string {return "NotFaux Chain"}
 func (r *notFauxchain) LoadCredentials() bool {return false}
-func (r *notFauxchain) Login(token string) bool {return true}
+func (r *notFauxchain) LoginFields() map[string]string {
+  return map[string]string {
+    "Username": "faux@straunt.com",
+    "Password": "hunter3",
+  }
+};
+func (r *notFauxchain) Login(fields map[string]string) bool {return true};
 func (r *notFauxchain) Locations() []location {
   fauxchain :=  InitFauxChain()
   return (&fauxchain).Locations()
@@ -35,7 +41,13 @@ func InitFauxChain() fauxchain {
 
 func (r *fauxchain) GetName() string {return "FauxChain"}
 func (r *fauxchain) LoadCredentials() bool {return false}
-func (r *fauxchain) Login(token string) bool {return true}
+func (r *fauxchain) LoginFields() map[string]string {
+  return map[string]string {
+    "Username": "faux@straunt.com",
+    "Password": "hunter2",
+  }
+};
+func (r *fauxchain) Login(fields map[string]string) bool {return true};
 func (r *fauxchain) Locations() []location {return r.restaurants}
 
 
