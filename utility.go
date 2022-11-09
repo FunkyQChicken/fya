@@ -3,12 +3,15 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
-  "os"
+	"os"
+	"strings"
 )
 
 func todoHandleErrorBetter(err error) {
@@ -149,4 +152,27 @@ func tryLoadFromJsonToFile[T any](filename string) (T, bool) {
   json.Unmarshal(data, &ret)
   todoHandleErrorBetter(err)
   return ret, true
+}
+
+
+func parseStringDict(toParse string, fieldSep string, pairSep string) (map[string]string, error) {
+  pairs := strings.Split(toParse, fieldSep)
+  ret := make(map[string]string, len(pairs))
+  for _, pair := range pairs {
+    key, val, err := strings.Cut(pair, pairSep) 
+    if !err {
+      return nil, errors.New(fmt.Sprintf("'%s' not found in cookie field, malformed input or more robust function needed", pairSep))
+    }
+    ret[key] = val
+  }
+  return ret, nil
+}
+
+/**
+ * This is not a robust function, but should work for basic needs.
+ */
+func parseCookie(cookie string) (map[string]string, error) {
+  cookie = strings.TrimPrefix(cookie, "\"")
+  cookie = strings.TrimSuffix(cookie, "\"")
+  return parseStringDict(cookie, "; ", "=")
 }

@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"strings"
 )
 
 const paneraCredsFile = "panera_creds.json"
@@ -266,24 +267,61 @@ func (pc *PaneraChain) Login(fields map[string]string) bool {
   if pc.credsLoaded {
     log.Fatalln("ERROR: Can't log in again, credentials already loaded")
   }
-  // send login request
   
-  
-
-  creds := credentials{
-   // AuthToken: AccessToken,
-   // Email: EmailAddress,
-   // Phone: PhoneNumber,
-   // Id: fmt.Sprint(loginResp.CustomerId),
-   // FirstName: FirstName,
-   // LastName: LastName,
-   // Loyaltynum: Loyalty.CardNumber,
+  cookie, err := parseCookie(fields["Cookie"])  
+  if err != nil {
+    log.Printf("Login problem: %s\n", err)
+    return false
   }
 
-  // TODO send request to check deats
+  //make sure relevant fields exist
+  for _, x := range []string {"ssoToken", "customerId", "info" } {
+    if _, err := cookie[x]; !err  {
+      log.Printf("Login problem: missing field '%s' in cookie", x)
+      return false
+    }
+  }
+
+  info, err := parseStringDict(cookie["info"], ",", "=")
+  if err != nil {
+    log.Printf("Login problem while parsing field 'info': %s\n", err)
+    return false
+  }
+
+  for _, x := range []string {"firstName", "cardNumber"} {
+    if _, err := info[x]; !err  {
+      log.Printf("Login problem: missing field '%s' in info subfield of cookie", x)
+      return false
+    }
+  }
+
+  first, last, ok := strings.Cut(info["firstName"], " ")
+  if !ok {
+    log.Print("could not find a space in field 'firstName'")
+    return false
+  }
+
+
+  creds := credentials{
+    AuthToken: cookie["ssoToken"],
+    Email: fields["Email"],
+    Phone: fields["Phone #"],
+    Id: cookie["customerId"],
+    FirstName: first,
+    LastName: last,
+    Loyaltynum: info["cardNumber"],
+  }
+  
+  req := getRequestNoMarshal(
+    pURL(fmt.Sprintf("/users/%s/rewards/v2/%s/500000/", creds.Id, creds.Loyaltynum)),
+    creds.authdHeader())
+
+  if req.StatusCode >= 300 || req.StatusCode < 200 {
+    log.Printf("Login problem: provided credentials didn't pass request check, got result %s", req.Status)
+    return false
+  }
 
   pc.creds = creds
-
   saveAsJsonToFile(creds, paneraCredsFile)
 
   return true
