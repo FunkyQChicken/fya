@@ -388,7 +388,7 @@ type paneraItem struct {
   Quantity int `json:"quantity"`
   ItemDiscAmt float32 `json:"itemDiscAmt"`
   AfterDiscAmt int `json:"afterDiscAmt"`
-  SalesTaxAmount int `json:"salesTaxAmount"`
+  SalesTaxAmount float32 `json:"salesTaxAmount"`
   MsgPreparedFor string `json:"msgPreparedFor"`
   MsgKitchen string `json:"msgKitchen"`
   Discounts []paneraDiscount `json:"discounts"`
@@ -404,7 +404,7 @@ type paneraItem struct {
 type tax struct {
   TaxBit int `json:"taxBit"`
   Description string `json:"description"`
-  Amount int `json:"amount"`
+  Amount float32 `json:"amount"`
 }
 
 
