@@ -13,6 +13,7 @@ import (
 	"os"
 	"strings"
 )
+var BaseDir = ""
 
 func todoHandleErrorBetter(err error) {
   if err != nil {
@@ -21,7 +22,7 @@ func todoHandleErrorBetter(err error) {
 }
 
 func getConfigFilePath(name string) string {
-  return name // TODO get path to config directory
+  return BaseDir + name 
 }
 
 
