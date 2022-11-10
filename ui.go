@@ -432,7 +432,7 @@ func (s SignIn) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 type cartPreview struct { 
   location Location 
-  items []cartItem
+  items []CartItem
   prev picker
 }
 
@@ -466,9 +466,9 @@ func (c cartPreview) View() string {
   items := ""
   totalCost := 0
   for _, it := range c.items {
-    items += it.description + "\n"
-    totalCost += it.cost
-    costs += centsAsDollar(it.cost) +"\n"
+    items += it.Description + "\n"
+    totalCost += it.Cost
+    costs += centsAsDollar(it.Cost) +"\n"
   }
   return smolPad.Render(fmt.Sprintf("%s\n\n%s\nTotal Cost: %s\n\n%s", 
     fauxBlue.Render("Would you like to place your order?"),
