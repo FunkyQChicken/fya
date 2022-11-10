@@ -173,7 +173,7 @@ func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 
 
-type locationItem struct { c location }
+type locationItem struct { c Location }
 func (i locationItem) Title() string       { return i.c.GetAddress() }
 func (i locationItem) Description() string { return i.c.GetDescription() }
 func (i locationItem) FilterValue() string { return i.Title() + " " + i.Description() }
@@ -184,34 +184,34 @@ type locationPicker struct {
 
 
 
-type chainItem struct { c chain }
+type chainItem struct { c Chain }
 func (i chainItem) Title() string       { return i.c.GetName() }
 func (i chainItem) Description() string { return "" }
 func (i chainItem) FilterValue() string { return i.Title() }
 
 
 
-type menuItem struct { i item }
+type menuItem struct { i FoodItem }
 func (i menuItem) Title() string { 
-  return fmt.Sprintf("%s - %s", i.i.name, centsAsDollar(i.i.cost)) 
+  return fmt.Sprintf("%s - %s", i.i.Name, centsAsDollar(i.i.Cost)) 
 }
 func (i menuItem) Description() string { 
-  return fmt.Sprintf("%s\n%d calories", i.i.description, i.i.calories)
+  return fmt.Sprintf("%s\n%d calories", i.i.Description, i.i.Calories)
 }
-func (i menuItem) FilterValue() string { return i.i.name }
+func (i menuItem) FilterValue() string { return i.i.Name }
 
 
-type discountItem struct { d discount }
-func (i discountItem) Title() string       { return i.d.name }
-func (i discountItem) Description() string { return i.d.description }
+type discountItem struct { d Discount }
+func (i discountItem) Title() string       { return i.d.Name }
+func (i discountItem) Description() string { return i.d.Description }
 func (i discountItem) FilterValue() string { return i.Title() }
 
 
 
 type picker struct {
   list list.Model
-  chain chain
-  location location
+  chain Chain
+  location Location
   foodChosen bool
 }
 
@@ -237,7 +237,7 @@ func (p * picker) intoLocPicker() {
   p.list.ResetSelected()
 }
 
-func (p * picker) intoFoodPicker(menu []item) {
+func (p * picker) intoFoodPicker(menu []FoodItem) {
   menuItems := make([]list.Item, len(menu))
   for i, v := range menu {
     menuItems[i] = menuItem{v}
@@ -248,7 +248,7 @@ func (p * picker) intoFoodPicker(menu []item) {
   p.list.ResetSelected()
 }
 
-func (p * picker) intoDiscountPicker(discounts []discount) {
+func (p * picker) intoDiscountPicker(discounts []Discount) {
   discountItems := make([]list.Item, len(discounts))
   for i, v := range discounts {
     discountItems[i] = discountItem{v}
@@ -313,7 +313,7 @@ func (p picker) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
       }
     case tea.WindowSizeMsg:
       p.list.SetSize(msg.Width, msg.Height)
-    case []item:
+    case []FoodItem:
       p.intoFoodPicker(msg)
 	}
 
@@ -431,12 +431,12 @@ func (s SignIn) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 
 type cartPreview struct { 
-  location location 
+  location Location 
   items []cartItem
   prev picker
 }
 
-func initCartPreview(location location, prev picker) cartPreview{
+func initCartPreview(location Location, prev picker) cartPreview{
   return cartPreview {
     location: location,
     items: location.Cart(),

@@ -1,3 +1,5 @@
+github.com/FunkyQChicken/fya/restaurant v0.0.0-20221110190041-466a1b746d88 h1:5+6tsJX5Y/7TWT+1WKfDt7kwCX984kScL+Dh7uidkZI=
+github.com/FunkyQChicken/fya/restaurant v0.0.0-20221110190041-466a1b746d88/go.mod h1:MTnTlbMr+bb0VfeihVi9xaLUyC9RMYm3+teSZVlYJwk=
 github.com/atotto/clipboard v0.1.4 h1:EH0zSVneZPSuFR11BlR9YppQTVDbh5+16AmcJi4g1z4=
 github.com/atotto/clipboard v0.1.4/go.mod h1:ZY9tmq7sm5xIbd9bOK4onWV4S6X0u6GY7Vn0Yu86PYI=
 github.com/charmbracelet/bubbles v0.14.0 h1:DJfCwnARfWjZLvMglhSQzo76UZ2gucuHPy9jLWX45Og=

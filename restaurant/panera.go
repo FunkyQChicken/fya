@@ -109,7 +109,7 @@ func (p *Panera) AddItem(i FoodItem) {
 		Items: []itemadd {
 			{
 				IsNoSideOption: false,
-				Itemid: float64(i.id),
+				Itemid: float64(i.Id),
 				Parentid: 0,
 				Composition: composition { },
 				MsgPreparedFor: os.Getenv("FirstName"),
@@ -131,9 +131,9 @@ func (p *Panera) AddItem(i FoodItem) {
 func (p *Panera) Discounts() []Discount {
 	return []Discount {
 		{
-      name: "Panera Sip-Club",
-      description: "One free drink with refills every 2 hours!",
-      id:1238,
+      Name: "Panera Sip-Club",
+      Description: "One free drink with refills every 2 hours!",
+      Id:1238,
     },
 	}
 }
@@ -146,7 +146,7 @@ func (p *Panera) ApplyDiscounts(d Discount) {
     Discounts: []discountReq {
         {
           Disctype: "WALLET_CODE",
-          PromoCode: fmt.Sprintf("%d", d.id),
+          PromoCode: fmt.Sprintf("%d", d.Id),
         },
       },
   } 

@@ -21,22 +21,22 @@ type Location interface {
 }
 
 type FoodItem struct {
-  name string
-  description string
-  calories int 
-  cost int // cents
-  id int   // arbitrary, can reference internal array if needed
+  Name string
+  Description string
+  Calories int 
+  Cost int // cents
+  Id int   // arbitrary, can reference internal array if needed
 }
 
 type Discount struct {
-  name string
-  description string
-  id int
+  Name string
+  Description string
+  Id int
 }
 
 type CartItem struct {
-  description string
-  cost int
+  Description string
+  Cost int
 }
 
 var fc = InitFauxChain();

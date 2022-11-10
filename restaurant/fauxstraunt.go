@@ -67,25 +67,25 @@ func (r *fauxstraunt) CreateCart() {r.cartCreated = true}
 func (r *fauxstraunt) Menu() []FoodItem {
   return []FoodItem {
     {
-      name: "Snowcone",
-      description: "A tasty and sweet treat for any to eat",
-      calories: 230,
-      cost: 299,
-      id: 0,
+      Name: "Snowcone",
+      Description: "A tasty and sweet treat for any to eat",
+      Calories: 230,
+      Cost: 299,
+      Id: 0,
     },
     {
-      name: "Chocolate",
-      description: "A classic candy that was initially a spicy beverage",
-      calories: 150,
-      cost: 100,
-      id: 1,
+      Name: "Chocolate",
+      Description: "A classic candy that was initially a spicy beverage",
+      Calories: 150,
+      Cost: 100,
+      Id: 1,
     },
     {
-      name: "Water",
-      description: "We are legally required to provide this to you",
-      calories: 0,
-      cost: 0,
-      id: 2,
+      Name: "Water",
+      Description: "We are legally required to provide this to you",
+      Calories: 0,
+      Cost: 0,
+      Id: 2,
     },
   }
 }
@@ -100,14 +100,14 @@ func (r *fauxstraunt) AddItem(it FoodItem) {
 func (r *fauxstraunt) Discounts() []Discount {
   return []Discount {
     {
-      name: "subscriber plus",
-      description: "five cents off any order!",
-      id: 1,
+      Name: "subscriber plus",
+      Description: "five cents off any order!",
+      Id: 1,
     },
     {
-      name: "subscriber minus",
-      description: "five cents added to any order!?!?",
-      id: 2,
+      Name: "subscriber minus",
+      Description: "five cents added to any order!?!?",
+      Id: 2,
     },
   }
 }
@@ -116,7 +116,7 @@ func (r *fauxstraunt) ApplyDiscounts(disc Discount) {
   if ! r.cartCreated {
     panic("Cart not created and discount applied")
   }
-  switch disc.id {
+  switch disc.Id {
     case 1:
     r.discountOne = true
     case 2:
@@ -127,14 +127,14 @@ func (r *fauxstraunt) ApplyDiscounts(disc Discount) {
 func (r *fauxstraunt) Cart() []CartItem {
   ret := make([]CartItem, 0, len(r.cart) + 3)
   for _, it := range r.cart {
-    ret = append(ret, CartItem{description: it.name, cost: it.cost,})
+    ret = append(ret, CartItem{Description: it.Name, Cost: it.Cost,})
   }
-  ret = append(ret, CartItem{description: "Tax", cost: 10,})
+  ret = append(ret, CartItem{Description: "Tax", Cost: 10,})
   if r.discountOne {
-    ret = append(ret, CartItem{description: "subscriber plus!", cost: -5,})
+    ret = append(ret, CartItem{Description: "subscriber plus!", Cost: -5,})
   }
   if r.discountTwo {
-    ret = append(ret, CartItem{description: "subscriber minus?", cost: 5,})
+    ret = append(ret, CartItem{Description: "subscriber minus?", Cost: 5,})
   }
   return ret
 }
