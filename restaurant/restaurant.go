@@ -1,4 +1,4 @@
-package main
+package restaurant
 
 type chain interface {
   GetName() string;

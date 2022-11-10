@@ -1,6 +1,8 @@
 package main
 
 import (
+  . "github.com/FunkyQChicken/fya/restaurant"
+
 	"fmt"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -8,6 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
 )
 
 

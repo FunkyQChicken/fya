@@ -1,4 +1,4 @@
-module fya
+module github.com/FunkyQChicken/fya
 
 go 1.19
 

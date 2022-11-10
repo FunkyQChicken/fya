@@ -1,4 +1,4 @@
-package main
+package restaurant
 
 type credentials struct {
   AuthToken string `json:"authToken"`
