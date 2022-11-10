@@ -133,7 +133,7 @@ func saveAsJsonToFile[T any](data T, filename string) {
   filename = getConfigFilePath(filename)
   datajson, err := json.Marshal(data)
   todoHandleErrorBetter(err)
-  file, err := os.OpenFile(filename, os.O_TRUNC|os.O_WRONLY, 0600)
+  file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
   todoHandleErrorBetter(err)
   _, err = file.Write(datajson)
   todoHandleErrorBetter(err)

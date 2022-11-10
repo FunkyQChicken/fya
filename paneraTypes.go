@@ -2,11 +2,9 @@ package main
 
 type credentials struct {
   AuthToken string `json:"authToken"`
-  // ApiToken string
-  // DeviceId string
   Email string `json:"email"`
   Phone string `json:"phone"`
-  Id string `json:"id"`
+  Id int `json:"id"`
   LastName string `json:"lastname"`
   FirstName string `json:"firstname"`
   Loyaltynum string `json:"loyaltyNum"`
@@ -31,13 +29,24 @@ type PaneraChain struct {
 }
 
 type tokenResp struct {
-  AccessToken  string  `json:"accessToken"`
-  EmailAddress string  `json:"emailAddress"`
+  AccessToken  string  `json:"token"`
+  Emails       []email `json:"emails"`
+  Phones       []phone `json:"phones"`
   FirstName    string  `json:"firstName"`
   LastName     string  `json:"lastName"`
   PhoneNumber  string  `json:"phoneNumber"`
   CustomerId   int     `json:"customerId"`
   Loyalty      loyalty `json:"loyalty"`
+}
+
+type phone struct {
+  PhoneNumber string `json:"phoneNumber"`
+  IsDefault    bool   `json:"isDefault"`
+}
+
+type email struct {
+  EmailAddress string `json:"emailAddress"`
+  IsDefault    bool   `json:"isDefault"`
 }
 
 type loyalty struct {
@@ -47,7 +56,7 @@ type loyalty struct {
 type customer struct {
 	Email string						`json:"email"`
 	Phone string						`json:"phone"`
-	Id string							`json:"id"`
+	Id int							`json:"id"`
 	LastName string						`json:"lastName"`
 	FirstName string					`json:"firstName"`
 	IdentityProvider string				`json:"identityProvider"`

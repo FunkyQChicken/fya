@@ -1,11 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/url"
 	"os"
-	"strings"
 )
 
 const paneraCredsFile = "panera_creds.json"
@@ -182,7 +182,13 @@ func (p *Panera) Checkout() bool {
   resp := postRequestNoMarshal(
     pURL(fmt.Sprintf("/payment/v2/slot-submit/%s", p.cartid)),
     p.parent.creds.authdHeader(),
-    checkoutReq {})
+    checkoutReq {
+      Payment: payment {
+        GiftCards: []struct{}{},
+        CreditCards: []struct{}{},
+        CampusCards: []struct{}{},
+      },
+    })
 	return resp.StatusCode == 200
 }
 
@@ -257,9 +263,7 @@ func (pc *PaneraChain) LoadCredentials() bool {
 
 func (pc *PaneraChain) LoginFields() map[string]string {
   return map[string]string {
-    "Email": "john@gmail.com",
-    "Phone #": "2238008000",
-    "Cookie": "_abck=....",
+    "Login response": "{\"customerId\":...",
   }
 }
 
@@ -267,50 +271,34 @@ func (pc *PaneraChain) Login(fields map[string]string) bool {
   if pc.credsLoaded {
     log.Fatalln("ERROR: Can't log in again, credentials already loaded")
   }
+  response := fields["Login response"]
   
-  cookie, err := parseCookie(fields["Cookie"])  
-  if err != nil {
-    log.Printf("Login problem: %s\n", err)
+  var accountDetails tokenResp
+  error := json.Unmarshal([]byte(response), &accountDetails)
+  if error != nil {
     return false
   }
 
-  //make sure relevant fields exist
-  for _, x := range []string {"ssoToken", "customerId", "info" } {
-    if _, err := cookie[x]; !err  {
-      log.Printf("Login problem: missing field '%s' in cookie", x)
-      return false
-    }
+  email := ""
+  for _, e := range accountDetails.Emails {
+    if e.IsDefault {email = e.EmailAddress }
   }
 
-  info, err := parseStringDict(cookie["info"], ",", "=")
-  if err != nil {
-    log.Printf("Login problem while parsing field 'info': %s\n", err)
-    return false
+  phone := ""
+  for _, n := range accountDetails.Phones {
+    if n.IsDefault { phone = n.PhoneNumber }
   }
-
-  for _, x := range []string {"firstName", "cardNumber"} {
-    if _, err := info[x]; !err  {
-      log.Printf("Login problem: missing field '%s' in info subfield of cookie", x)
-      return false
-    }
-  }
-
-  first, last, ok := strings.Cut(info["firstName"], " ")
-  if !ok {
-    log.Print("could not find a space in field 'firstName'")
-    return false
-  }
-
 
   creds := credentials{
-    AuthToken: cookie["ssoToken"],
-    Email: fields["Email"],
-    Phone: fields["Phone #"],
-    Id: cookie["customerId"],
-    FirstName: first,
-    LastName: last,
-    Loyaltynum: info["cardNumber"],
+    AuthToken: accountDetails.AccessToken,
+    Email: email,
+    Phone: phone,
+    Id: accountDetails.CustomerId,
+    FirstName: accountDetails.FirstName,
+    LastName: accountDetails.LastName,
+    Loyaltynum: accountDetails.Loyalty.CardNumber,
   }
+  saveAsJsonToFile(creds, paneraCredsFile)
   
   req := getRequestNoMarshal(
     pURL(fmt.Sprintf("/users/%s/rewards/v2/%s/500000/", creds.Id, creds.Loyaltynum)),
