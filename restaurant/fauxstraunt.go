@@ -14,7 +14,7 @@ func (r *notFauxchain) LoginFields() map[string]string {
   }
 };
 func (r *notFauxchain) Login(fields map[string]string) bool {return true};
-func (r *notFauxchain) Locations() []location {
+func (r *notFauxchain) Locations() []Location {
   fauxchain :=  InitFauxChain()
   return (&fauxchain).Locations()
 }
@@ -22,11 +22,11 @@ func (r *notFauxchain) Locations() []location {
 
 
 type fauxchain struct {
-  restaurants []location
+  restaurants []Location
 }
 
 func InitFauxChain() fauxchain {
-  fauxstraunts := []location {
+  fauxstraunts := []Location {
     &fauxstraunt { 
       description: "How did this get here???",
       address: "litterally Narnia",
@@ -48,14 +48,14 @@ func (r *fauxchain) LoginFields() map[string]string {
   }
 };
 func (r *fauxchain) Login(fields map[string]string) bool {return true};
-func (r *fauxchain) Locations() []location {return r.restaurants}
+func (r *fauxchain) Locations() []Location {return r.restaurants}
 
 
 type fauxstraunt struct {
   description string
   address string
   cartCreated bool
-  cart []item
+  cart []FoodItem
   discountOne bool 
   discountTwo bool
 }
@@ -64,8 +64,8 @@ type fauxstraunt struct {
 func (r *fauxstraunt) GetDescription() string {return r.description}
 func (r *fauxstraunt) GetAddress() string {return r.address}
 func (r *fauxstraunt) CreateCart() {r.cartCreated = true}
-func (r *fauxstraunt) Menu() []item {
-  return []item {
+func (r *fauxstraunt) Menu() []FoodItem {
+  return []FoodItem {
     {
       name: "Snowcone",
       description: "A tasty and sweet treat for any to eat",
@@ -90,15 +90,15 @@ func (r *fauxstraunt) Menu() []item {
   }
 }
 
-func (r *fauxstraunt) AddItem(it item) {
+func (r *fauxstraunt) AddItem(it FoodItem) {
   if ! r.cartCreated {
     panic("Cart not created and item added")
   }
   r.cart = append(r.cart, it)
 }
 
-func (r *fauxstraunt) Discounts() []discount {
-  return []discount {
+func (r *fauxstraunt) Discounts() []Discount {
+  return []Discount {
     {
       name: "subscriber plus",
       description: "five cents off any order!",
@@ -112,7 +112,7 @@ func (r *fauxstraunt) Discounts() []discount {
   }
 }
 
-func (r *fauxstraunt) ApplyDiscounts(disc discount) {
+func (r *fauxstraunt) ApplyDiscounts(disc Discount) {
   if ! r.cartCreated {
     panic("Cart not created and discount applied")
   }
@@ -124,17 +124,17 @@ func (r *fauxstraunt) ApplyDiscounts(disc discount) {
   }
 }
 
-func (r *fauxstraunt) Cart() []cartItem {
-  ret := make([]cartItem, 0, len(r.cart) + 3)
+func (r *fauxstraunt) Cart() []CartItem {
+  ret := make([]CartItem, 0, len(r.cart) + 3)
   for _, it := range r.cart {
-    ret = append(ret, cartItem{description: it.name, cost: it.cost,})
+    ret = append(ret, CartItem{description: it.name, cost: it.cost,})
   }
-  ret = append(ret, cartItem{description: "Tax", cost: 10,})
+  ret = append(ret, CartItem{description: "Tax", cost: 10,})
   if r.discountOne {
-    ret = append(ret, cartItem{description: "subscriber plus!", cost: -5,})
+    ret = append(ret, CartItem{description: "subscriber plus!", cost: -5,})
   }
   if r.discountTwo {
-    ret = append(ret, cartItem{description: "subscriber minus?", cost: 5,})
+    ret = append(ret, CartItem{description: "subscriber minus?", cost: 5,})
   }
   return ret
 }

@@ -59,7 +59,7 @@ func (p *Panera) CreateCart() {
 	p.cartCreated = true
 }
 
-func (p *Panera) Menu() []item {
+func (p *Panera) Menu() []FoodItem {
   mv := getRequest[menuversion](
     pURL(fmt.Sprintf("/%d/menu/version", p.id)),
     p.parent.creds.authdHeader(),
@@ -70,7 +70,7 @@ func (p *Panera) Menu() []item {
     p.parent.creds.authdHeader(),
   )
 	
-  ret := make([]item, 0, 100)
+  ret := make([]FoodItem, 0, 100)
   for _, placard := range m.Placards {
     optsets := placard.OptSets
     if (optsets != nil) {
@@ -86,7 +86,7 @@ func (p *Panera) Menu() []item {
           }
         }
 
-        ret = append(ret, item{
+        ret = append(ret, FoodItem{
           name,
           description,
           calories,
@@ -100,7 +100,7 @@ func (p *Panera) Menu() []item {
 	return ret
 }
 
-func (p *Panera) AddItem(i item) {
+func (p *Panera) AddItem(i FoodItem) {
 	if !p.cartCreated {
 		panic("Item added without an existing cart!")
 	}
@@ -128,8 +128,8 @@ func (p *Panera) AddItem(i item) {
 	p.cart = append(p.cart, i)
 }
 
-func (p *Panera) Discounts() []discount {
-	return []discount {
+func (p *Panera) Discounts() []Discount {
+	return []Discount {
 		{
       name: "Panera Sip-Club",
       description: "One free drink with refills every 2 hours!",
@@ -138,7 +138,7 @@ func (p *Panera) Discounts() []discount {
 	}
 }
 
-func (p *Panera) ApplyDiscounts(d discount) {
+func (p *Panera) ApplyDiscounts(d Discount) {
 	if !p.cartCreated {
 		panic("Item applied without an existing cart!")
 	}
@@ -156,9 +156,9 @@ func (p *Panera) ApplyDiscounts(d discount) {
     discBody)
 }
 
-func (p *Panera) Cart() []cartItem {
-	var cis []cartItem
-	cis = make([]cartItem, 0, len(p.cart) + 2) 
+func (p *Panera) Cart() []CartItem {
+	var cis []CartItem
+	cis = make([]CartItem, 0, len(p.cart) + 2) 
 
   cart := postRequest[struct{}, cart](
 		pURL(fmt.Sprintf("/cart/%s/checkout", p.cartid)), //?summary=true
@@ -168,11 +168,11 @@ func (p *Panera) Cart() []cartItem {
   for _, it := range cart.Items {
     cost := int(it.Amount * 100)
     name := it.RenderSource.Name 
-    cis = append(cis, cartItem{name, cost})
+    cis = append(cis, CartItem{name, cost})
   }
 
-  cis = append(cis, cartItem{"Tax", int( 100 * cart.CartSummary.Tax)})
-  cis = append(cis, cartItem{"Discount", int(-100 * cart.CartSummary.Discount)})
+  cis = append(cis, CartItem{"Tax", int( 100 * cart.CartSummary.Tax)})
+  cis = append(cis, CartItem{"Discount", int(-100 * cart.CartSummary.Discount)})
 
   return cis
 }
@@ -315,12 +315,12 @@ func (pc *PaneraChain) Login(fields map[string]string) bool {
   return true
 }
 
-func (pc *PaneraChain) Locations() []location {
+func (pc *PaneraChain) Locations() []Location {
 	if !pc.credsLoaded {
 		log.Fatalln("Can’t get locations if credentials haven’t yet been loaded!")
 	}
 	
-	var ls []location = make([]location, 0, len(pc.restaurants))
+	var ls []Location = make([]Location, 0, len(pc.restaurants))
 	var p *Panera
 	for _, p = range pc.restaurants {
 		ls = append(ls, p)

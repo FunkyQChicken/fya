@@ -17,7 +17,7 @@ type Panera struct {
 	destinationCode string
 	cartCreated bool
 	cartid string
-	cart []item
+	cart []FoodItem
   parent *PaneraChain
 }
 

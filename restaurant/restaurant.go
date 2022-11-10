@@ -1,26 +1,26 @@
 package restaurant
 
-type chain interface {
+type Chain interface {
   GetName() string;
   LoginFields() map[string]string;
   Login(fields map[string]string) bool;
   LoadCredentials() bool;
-  Locations() []location;
+  Locations() []Location;
 }
 
-type location interface {
+type Location interface {
   GetDescription() string
   GetAddress() string
   CreateCart();
-  Menu() []item;
-  AddItem(item);
-  Discounts() []discount;
-  ApplyDiscounts(discount);
-  Cart() []cartItem;
+  Menu() []FoodItem;
+  AddItem(FoodItem);
+  Discounts() []Discount;
+  ApplyDiscounts(Discount);
+  Cart() []CartItem;
   Checkout() bool;
 }
 
-type item struct {
+type FoodItem struct {
   name string
   description string
   calories int 
@@ -28,13 +28,13 @@ type item struct {
   id int   // arbitrary, can reference internal array if needed
 }
 
-type discount struct {
+type Discount struct {
   name string
   description string
   id int
 }
 
-type cartItem struct {
+type CartItem struct {
   description string
   cost int
 }
@@ -42,7 +42,7 @@ type cartItem struct {
 var fc = InitFauxChain();
 var nfc = InitNotFauxChain();
 var pc = InitPaneraChain()
-var Chains = []chain {
+var Chains = []Chain {
   &fc,
   &nfc,
   pc,
