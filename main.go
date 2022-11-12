@@ -4,9 +4,11 @@ import (
 //	"github.com/charmbracelet/bubbles"
   "fmt"
   "os"
-	tea "github.com/charmbracelet/bubbletea"
   "log"
   "errors"
+
+	tea "github.com/charmbracelet/bubbletea"
+
   "github.com/FunkyQChicken/fya/restaurant"
 )
 

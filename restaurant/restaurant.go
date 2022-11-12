@@ -13,7 +13,8 @@ type Location interface {
   GetAddress() string
   CreateCart();
   Menu() []FoodItem;
-  AddItem(FoodItem);
+  GetCustomizations(FoodItem) []FoodOption;
+  AddItem(FoodItem, []FoodOption);
   Discounts() []Discount;
   ApplyDiscounts(Discount);
   Cart() []CartItem;
@@ -26,6 +27,39 @@ type FoodItem struct {
   Calories int 
   Cost int // cents
   Id int   // arbitrary, can reference internal array if needed
+}
+
+
+type FoodOption interface {}
+
+type FoodOptionSelectOne struct {
+  Name string
+  Id int
+  Options []string
+  Ids []int
+  Curr int
+}
+
+type FoodOptionsGroup struct {
+  Name string
+  Id int
+  Options []FoodOption
+  Selected int
+}
+
+type FoodOptionSelectNumber struct {
+  Name string
+  Id int
+  Num int
+  Min int
+  Max int
+}
+
+type FoodOptionText struct {
+  Name string
+  Text string
+  MaxLen int
+  DefaultString string
 }
 
 type Discount struct {

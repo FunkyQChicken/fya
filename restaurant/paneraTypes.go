@@ -28,6 +28,36 @@ type PaneraChain struct {
 	restaurants []*Panera
 }
 
+type customizations struct {
+  Modifiers modifiers `json:"modifiers"`   
+}
+
+type modifiers struct {
+  ModGroups []modGroup `json:"modGroups"`
+}
+
+type modGroup struct {
+  Name string `json:"i18nName"`
+  ModItems []modItem `json:"modItems"` 
+  ModItemId int `json:"modItemId"`
+  MaxAllowed int `json:"maxAllowed"`
+  MinAllowed int `json:"minAllowed"`
+} 
+
+type modItem struct {
+  Id int `json:"modItemId"`
+  DefaultVariant int `json:"defaultVariant"`
+  Name string  `json:"i18nName"`
+  MaxAllowed int `json:"maxAllowed"`
+  MinAllowed int `json:"minAllowed"`
+  Variants []Variant `json:"variants"`
+}
+
+type Variant struct {
+  Id int `json:"itemId"`
+  Name string `json:"i18nBtnLbl"`
+}
+
 type tokenResp struct {
   AccessToken  string  `json:"token"`
   Emails       []email `json:"emails"`

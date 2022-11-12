@@ -90,9 +90,26 @@ func (r *fauxstraunt) Menu() []FoodItem {
   }
 }
 
-func (r *fauxstraunt) AddItem(it FoodItem) {
+func (r *fauxstraunt) GetCustomizations(f FoodItem) []FoodOption {
+  return []FoodOption{
+    FoodOptionSelectOne{
+      Name: "Salt",
+      Options: []string{"Yes", "No", "A Lot"},
+      Id: 0,
+      Ids: []int{0,1,2},
+      Curr: 0,
+    }}
+}
+
+func (r *fauxstraunt) AddItem(it FoodItem, o []FoodOption) {
   if ! r.cartCreated {
     panic("Cart not created and item added")
+  }
+  switch o[0].(FoodOptionSelectOne).Curr {
+    case 0:
+      it.Name = "Salty "+it.Name 
+    case 2:
+      it.Name = "Very Salty "+it.Name 
   }
   r.cart = append(r.cart, it)
 }

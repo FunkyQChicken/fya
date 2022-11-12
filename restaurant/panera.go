@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/url"
-	"os"
 )
 
 const paneraCredsFile = "panera_creds.json"
@@ -100,11 +99,80 @@ func (p *Panera) Menu() []FoodItem {
 	return ret
 }
 
-func (p *Panera) AddItem(i FoodItem) {
+
+func (p *Panera) GetCustomizations(f FoodItem) []FoodOption {
+  ret := make([]FoodOption,0)
+  customs := getRequest[customizations](
+    pURL(fmt.Sprintf("/%d/%d/customizations", p.id, f.Id)),
+    p.parent.creds.authdHeader(),
+    );
+  for _, mg := range customs.Modifiers.ModGroups {
+    if mg.MinAllowed == 1 && mg.MaxAllowed == 1 {
+      //add pick one
+      options := make([]string, len(mg.ModItems))
+      ids := make([]int, len(mg.ModItems))
+
+      for i, mi := range mg.ModItems {
+        options[i] = mi.Name
+        ids[i] = mi.Id
+      }
+
+      ret = append(ret, FoodOptionSelectOne {
+        Curr: 0,
+        Options: options,
+        Name: mg.Name,
+        Id: mg.ModItemId,
+        Ids: ids,
+      });
+
+    } else if mg.MinAllowed == 0 && mg.MaxAllowed == 999 {
+      options := make([]FoodOption, 0, len(mg.ModItems))
+      for _, mi := range mg.ModItems {
+        if mi.MaxAllowed == 0 {
+          variants := make([]string, len(mi.Variants))
+          ids := make([]int, len(mi.Variants))
+          // TODO add ids along side
+          for i, v := range mi.Variants {
+            variants[i] = v.Name
+            ids[i] = v.Id
+          }
+          options = append(options, FoodOptionSelectOne{
+            Curr: 0,
+            Name: mi.Name,
+            Options: variants,
+            Id: mi.Id,
+            Ids: ids,
+          })
+        } else {
+          options = append(options, FoodOptionSelectNumber{
+            Name: mi.Name,
+            Id: mi.Id,
+            Min: mi.MinAllowed,
+            Max: mi.MaxAllowed,
+          })
+        }
+      }
+      ret = append(ret, FoodOptionsGroup{
+          Name: mg.Name,
+          Id: mg.ModItemId,
+          Options: options,
+        })
+      //add a group of select numbers
+
+    } else {
+      log.Printf("Warning: Customization option couldn't be displayed: %#v\n", mg)
+    }
+  }
+  return ret
+}
+
+func (p *Panera) AddItem(i FoodItem, o []FoodOption) {
 	if !p.cartCreated {
 		panic("Item added without an existing cart!")
 	}
 	
+  //TODO take 'o' into account with request
+
 	var isa = itemsadd {
 		Items: []itemadd {
 			{
@@ -112,7 +180,7 @@ func (p *Panera) AddItem(i FoodItem) {
 				Itemid: float64(i.Id),
 				Parentid: 0,
 				Composition: composition { },
-				MsgPreparedFor: os.Getenv("FirstName"),
+				MsgPreparedFor: p.parent.creds.FirstName,
 				Quantity: 1,
 				Type: "PRODUCT",
 				Promotional: false,
@@ -301,7 +369,7 @@ func (pc *PaneraChain) Login(fields map[string]string) bool {
   saveAsJsonToFile(creds, paneraCredsFile)
   
   req := getRequestNoMarshal(
-    pURL(fmt.Sprintf("/users/%s/rewards/v2/%s/500000/", creds.Id, creds.Loyaltynum)),
+    pURL(fmt.Sprintf("/users/%d/rewards/v2/%s/500000/", creds.Id, creds.Loyaltynum)),
     creds.authdHeader())
 
   if req.StatusCode >= 300 || req.StatusCode < 200 {

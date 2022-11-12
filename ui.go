@@ -1,7 +1,8 @@
 package main
 
 import (
-  . "github.com/FunkyQChicken/fya/restaurant"
+
+	. "github.com/FunkyQChicken/fya/restaurant"
 
 	"fmt"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-
 )
 
 
@@ -58,7 +58,13 @@ var (
     PaddingLeft(2)
 
   bold = lipgloss.NewStyle().
-    Bold(true)
+    Bold(true).
+    Render
+
+  highlight = lipgloss.NewStyle().
+    Foreground(lipgloss.Color("#EE6FF8")).
+    Render
+
 )
 
 func centsAsDollar(cents int) string {
@@ -293,15 +299,17 @@ func (p picker) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
           } else if !p.foodChosen {
             men, ok := p.list.SelectedItem().(menuItem)
             if ok {
-              p.location.AddItem(men.i)
               discounts := p.location.Discounts()
+              var next tea.Model
               p.foodChosen = true
               if len(discounts) > 0 {
                 p.intoDiscountPicker(discounts)
-                return p, nil
+                next = p
               } else {
-                return initCartPreview(p.location, p), nil
+                next = initCartPreview(p.location, p)
               }
+              item := men.i
+              return initCustomize(item, p, next), nil
             }
           } else {
             disc, ok := p.list.SelectedItem().(discountItem)
@@ -473,6 +481,113 @@ func (c cartPreview) View() string {
   return smolPad.Render(fmt.Sprintf("%s\n\n%s\nTotal Cost: %s\n\n%s", 
     fauxBlue.Render("Would you like to place your order?"),
     lipgloss.JoinHorizontal(lipgloss.Top, items, right.Render(costs)),
-    bold.Render(centsAsDollar(totalCost)),
+    bold(centsAsDollar(totalCost)),
     subtle.Render("[Y]es/[N]o/[C]ancel")))
+}
+
+type customize struct {
+  food FoodItem
+  options []FoodOption
+  prev picker
+  next tea.Model
+  curr int
+}
+
+func initCustomize(food FoodItem, prev picker, next tea.Model) tea.Model {
+  return customize {
+    food: food,
+    options: prev.location.GetCustomizations(food),
+    prev: prev,
+    next: next,
+    curr: 0,
+  }
+}
+
+func (c customize) Init() tea.Cmd {
+  return nil
+}
+
+func (c customize) View() string {
+  views := make([]string, len(c.options))
+  for i, opt := range c.options {
+    views[i] = inputStyle.Render(ViewFoodOption(opt))
+  }
+  views[c.curr] = highlight(views[c.curr])
+  return lipgloss.JoinVertical(0, views...)
+}
+
+func (c customize) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+  switch msg := msg.(type) {
+    case tea.KeyMsg:
+      switch  msg.String() {
+        case "enter":
+          c.prev.location.AddItem(c.food, c.options)
+          return c.next, nil
+        case "tab":
+          c.curr = uwrap(c.curr, len(c.options))
+        case "shift+tab":
+          c.curr = dwrap(c.curr, len(c.options))
+        default:
+          c.options[c.curr] = UpdateFoodOption(c.options[c.curr], msg.String()) 
+      }
+  }
+  return c, nil
+}
+
+func ViewFoodOption(o FoodOption) string {
+  switch o := o.(type) {
+    case FoodOptionSelectOne:
+      return fmt.Sprintf("%s: < %s >", o.Name, o.Options[o.Curr])
+
+    case  FoodOptionSelectNumber:
+      return fmt.Sprintf("<%d> %s", o.Num, o.Name)
+
+    case FoodOptionsGroup:
+      ret := o.Name 
+      for i, fo := range o.Options {
+        curr := ViewFoodOption(fo)
+        if i == o.Selected {
+          curr = bold(curr)
+        }
+        ret = lipgloss.JoinVertical(0, ret, curr)
+      }
+      return ret
+    default:
+      return fmt.Sprintf("Error: %#v\n",0)
+  }
+}
+
+func dwrap(curr int, max int) int {
+  return (curr + max - 1) % max
+}
+func uwrap(curr int, max int) int {
+  return (curr + 1) % max
+}
+
+func UpdateFoodOption(o FoodOption, key string) FoodOption {
+  switch o := o.(type) {
+    case FoodOptionSelectOne:
+      switch key {
+        case "l", "right": o.Curr = uwrap(o.Curr, len(o.Options))
+        case "h", "left": o.Curr = dwrap(o.Curr, len(o.Options))
+      }
+      return o
+
+    case  FoodOptionSelectNumber:
+      switch key {
+        // TODO: Doesn't account for min
+        case "l", "left": o.Num = uwrap(o.Num, o.Max)
+        case "h", "right": o.Num = dwrap(o.Num, o.Max)
+      }
+      return o
+
+    case FoodOptionsGroup:
+      switch key {
+        case "k", "up": o.Selected = dwrap(o.Selected, len(o.Options))
+        case "j", "down": o.Selected = uwrap(o.Selected, len(o.Options))
+        default: o.Options[o.Selected] = UpdateFoodOption(o.Options[o.Selected], key)
+      }
+      return o
+  }
+  return o
 }
